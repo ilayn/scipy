@@ -890,6 +890,88 @@ def test_hegst():
         assert_allclose(eig, eig_gvd, rtol=1e-4)
 
 
+def test_rfp_conversion_routines():
+    """ Test LAPACK routines converting to and from
+        the Rectangular Full Packed (RFP) format
+    """
+    # RTF <-> standard packed
+    tfttp, tpttf = get_lapack_funcs(('tfttp', 'tpttf'))
+
+    even_size = 6
+    even_rfp_shape = (7, 3)
+    even_rfp_shape_trans = (3, 7)
+    odd_size = 5
+    odd_rfp_shape = (5, 3)
+    odd_rfp_shape_trans = (3, 5)
+
+    def test(size, rfp_shape, packed, full_packed, uplo):
+        rfp_shape_trans = (rfp_shape[1], rfp_shape[0])
+        Afp, info = tpttf(size, packed, uplo=uplo)
+        AfpT, info = tpttf(size, packed, uplo=uplo, transr='T')
+        assert (Afp.reshape(rfp_shape, order='F') == full_packed).all()
+        assert (Afp.reshape(rfp_shape, order='F').T ==
+                AfpT.reshape(rfp_shape_trans, order='F')).all()
+        Ap1, info = tfttp(size, Afp, uplo=uplo)
+        assert (Ap1 == packed).all()
+        Ap1T, info = tfttp(size, AfpT, uplo=uplo, transr='T')
+        assert (Ap1T == packed).all()
+
+    test(size=even_size, rfp_shape=even_rfp_shape,
+         packed=np.array([1000,
+                          1001, 1011,
+                          1002, 1012, 1022,
+                          1003, 1013, 1023, 1033,
+                          1004, 1014, 1024, 1034, 1044,
+                          1005, 1015, 1025, 1035, 1045, 1055]),
+         full_packed=np.array([[1003, 1004, 1005],
+                               [1013, 1014, 1015],
+                               [1023, 1024, 1025],
+                               [1033, 1034, 1035],
+                               [1000, 1044, 1045],
+                               [1001, 1011, 1055],
+                               [1002, 1012, 1022]]),
+         uplo='U')
+    test(size=odd_size, rfp_shape=odd_rfp_shape,
+         packed=np.array([1000,
+                          1001, 1011,
+                          1002, 1012, 1022,
+                          1003, 1013, 1023, 1033,
+                          1004, 1014, 1024, 1034, 1044]),
+         full_packed=np.array([[1002, 1003, 1004],
+                               [1012, 1013, 1014],
+                               [1022, 1023, 1024],
+                               [1000, 1033, 1034],
+                               [1001, 1011, 1044]]),
+         uplo='U')
+    test(size=even_size, rfp_shape=even_rfp_shape,
+         packed=np.array([1000, 1010, 1020, 1030, 1040, 1050,
+                                1011, 1021, 1031, 1041, 1051,
+                                      1022, 1032, 1042, 1052,
+                                            1033, 1043, 1053,
+                                                  1044, 1054,
+                                                        1055]),
+         full_packed=np.array([[1033, 1043, 1053],
+                               [1000, 1044, 1054],
+                               [1010, 1011, 1055],
+                               [1020, 1021, 1022],
+                               [1030, 1031, 1032],
+                               [1040, 1041, 1042],
+                               [1050, 1051, 1052]]),
+         uplo='L')
+    test(size=odd_size, rfp_shape=odd_rfp_shape,
+         packed=np.array([1000, 1010, 1020, 1030, 1040,
+                                1011, 1021, 1031, 1041,
+                                      1022, 1032, 1042,
+                                            1033, 1043,
+                                                  1044]),
+         full_packed=np.array([[1000, 1033, 1043],
+                               [1010, 1011, 1044],
+                               [1020, 1021, 1022],
+                               [1030, 1031, 1032],
+                               [1040, 1041, 1042]]),
+         uplo='L')
+
+
 def test_tzrzf():
     """
     This test performs an RZ decomposition in which an m x n upper trapezoidal
