@@ -14454,3 +14454,8 @@ add_newdoc("ndtri_exp",
     >>> sc.ndtri_exp(-1e-20)
     9.262340089798409
     """)
+
+add_newdoc("btdtria_cython",
+    """
+    Private function; do not use.
+    """)

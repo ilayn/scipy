@@ -276,6 +276,11 @@
             "cdfbet3_wrap": "ddd->d"
         }
     },
+    "btdtria_cython": {
+        "_cdflib_wrappers.pxd": {
+            "btdtria": "ddd->d"
+        }
+    },
     "btdtrib": {
         "cdf_wrappers.h": {
             "cdfbet4_wrap": "ddd->d"
