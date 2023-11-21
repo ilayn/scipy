@@ -50,7 +50,7 @@ cdef inline double btdtria(double p, double b, double x) noexcept nogil:
         double q = 1.0 - p
         double y = 1.0 - x
         double result, bound
-        int status
+        int status = 10
         char *argnames[5]
 
     argnames[0] = "p"
@@ -69,7 +69,7 @@ cdef inline double btdtrib(double p, double a, double x) noexcept nogil:
         double q = 1.0 - p
         double y = 1.0 - x
         double result, bound
-        int status
+        int status = 10
         char *argnames[5]
 
     argnames[0] = "p"
