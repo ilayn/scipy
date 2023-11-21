@@ -5,6 +5,8 @@ from libc.math cimport NAN
 from ._cdflib cimport (
     cdfbet_which3,
     cdfbet_which4,
+    cdfbin_which2,
+    cdfbin_which3,
 )
 
 
@@ -80,3 +82,39 @@ cdef inline double btdtrib(double p, double a, double x) noexcept nogil:
 
     result, status, bound = cdfbet_which4(p, q, x, y, a)
     return get_result("btdtrib", argnames, result, status, bound, 1)
+
+
+cdef inline double bdtrik(double p, double xn, double pr) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double ompr = 1.0 - pr
+        double result, bound
+        int status
+        char *argnames[5]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "xn"
+    argnames[3] = "pr"
+    argnames[4] = "ompr"
+
+    result, status, bound = cdfbin_which2(p, q, xn, pr, ompr)
+    return get_result("btdtrik", argnames, result, status, bound, 1)
+
+
+cdef inline double bdtrin(double s, double p, double pr) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double ompr = 1.0 - pr
+        double result, bound
+        int status = 10
+        char *argnames[5]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "s"
+    argnames[3] = "pr"
+    argnames[4] = "ompr"
+
+    result, status, bound = cdfbin_which3(p, q, s, pr, ompr)
+    return get_result("btdtrin", argnames, result, status, bound, 1)
