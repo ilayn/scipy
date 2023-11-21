@@ -14459,3 +14459,8 @@ add_newdoc("btdtria_cython",
     """
     Private function; do not use.
     """)
+
+add_newdoc("btdtrib_cython",
+    """
+    Private function; do not use.
+    """)

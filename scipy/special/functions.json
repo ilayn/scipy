@@ -286,6 +286,11 @@
             "cdfbet4_wrap": "ddd->d"
         }
     },
+    "btdtrib_cython": {
+        "_cdflib_wrappers.pxd": {
+            "btdtrib": "ddd->d"
+        }
+    },
     "cbrt": {
         "cephes.h": {
             "cbrt": "d->d"
