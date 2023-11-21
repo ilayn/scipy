@@ -20,6 +20,19 @@ from ._cdflib cimport (
     cdfnbn_which3,
     cdffnc_which1,
     cdffnc_which2,
+    cdffnc_which3,
+    cdffnc_which4,
+    cdffnc_which5,
+    cdftnc_which1,
+    cdftnc_which2,
+    cdftnc_which3,
+    cdftnc_which4,
+    cdfnor_which3,
+    cdfnor_which4,
+    cdfpoi_which2,
+    cdft_which1,
+    cdft_which2,
+    cdft_which3,
 )
 
 
@@ -58,7 +71,6 @@ cdef inline double get_result(
     sf_error.error(name, sf_error.OTHER, "Unknown error.")
     return NAN
     
-
 
 cdef inline double btdtria(double p, double b, double x) noexcept nogil:
     cdef:
@@ -297,9 +309,212 @@ cdef inline double ncfdtri(double dfn, double dfd, double nc, double p) noexcept
 
     argnames[0] = "p"
     argnames[1] = "q"
-    argnames[1] = "dfn"
-    argnames[2] = "dfd"
-    argnames[3] = "nc"
+    argnames[2] = "dfn"
+    argnames[3] = "dfd"
+    argnames[4] = "nc"
 
     result, status, bound = cdffnc_which2(p, q, dfn, dfd, nc)
     return get_result("ncfdtri", argnames, result, status, bound, 1)
+
+
+cdef inline double ncfdtridfd(double dfn, double p, double nc, double f) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[5]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "f"
+    argnames[3] = "dfn"
+    argnames[4] = "nc"
+
+    result, status, bound = cdffnc_which4(p, q, f, dfn, nc)
+    return get_result("ncfdtridfd", argnames, result, status, bound, 1)
+
+
+cdef inline double ncfdtridfn(double p, double dfd, double nc, double f) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[5]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "f"
+    argnames[3] = "dfd"
+    argnames[4] = "nc"
+
+    result, status, bound = cdffnc_which3(p, q, f, dfd, nc)
+    return get_result("ncfdtridfn", argnames, result, status, bound, 1)
+
+
+cdef inline double ncfdtrinc(double dfn, double dfd, double p, double f) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[5]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "f"
+    argnames[3] = "dfn"
+    argnames[4] = "dfd"
+
+    result, status, bound = cdffnc_which5(p, q, f, dfn, dfd)
+    return get_result("ncfdtrinc", argnames, result, status, bound, 1)
+
+
+cdef inline double nctdtr(double df, double nc, double t) noexcept nogil:
+    cdef:
+        double result, _, bound
+        int status = 10
+        char *argnames[3]
+
+    argnames[0] = "t"
+    argnames[1] = "df"
+    argnames[2] = "nc"
+
+    result, _, status, bound = cdftnc_which1(t, df, nc)
+    return get_result("nctdtr", argnames, result, status, bound, 1)
+
+
+cdef inline double nctdtridf(double p, double nc, double t) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[4]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "t"
+    argnames[3] = "nc"
+
+    result, status, bound = cdftnc_which3(p, q, t, nc)
+    return get_result("nctdtridf", argnames, result, status, bound, 1)
+
+
+cdef inline double nctdtrinc(double df, double p, double t) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[4]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "t"
+    argnames[3] = "df"
+
+    result, status, bound = cdftnc_which4(p, q, t, df)
+    return get_result("nctdtrinc", argnames, result, status, bound, 1)
+
+
+cdef inline double nctdtrit(double df, double nc, double p) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[4]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "df"
+    argnames[3] = "nc"
+
+    result, status, bound = cdftnc_which2(p, q, df, nc)
+    return get_result("nctdtrit", argnames, result, status, bound, 1)
+
+
+cdef inline double nrdtrimn(double p, double std, double x) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[4]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "x"
+    argnames[3] = "std"
+
+    result, status, bound = cdfnor_which3(p, q, x, std)
+    return get_result("nrdtrimn", argnames, result, status, bound, 1)
+
+
+cdef inline double nrdtrisd(double mn, double p, double x) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[4]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "x"
+    argnames[3] = "mn"
+
+    result, status, bound = cdfnor_which4(p, q, x, mn)
+    return get_result("nrdtrisd", argnames, result, status, bound, 1)
+
+
+cdef inline double pdtrik(double p, double xlam) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[3]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "xlam"
+
+    result, status, bound = cdfpoi_which2(p, q, xlam)
+    return get_result("pdtrik", argnames, result, status, bound, 1)
+
+
+cdef inline double stdtr(double t, double df) noexcept nogil:
+    cdef:
+        double result, _, bound
+        int status = 10
+        char *argnames[2]
+
+    argnames[0] = "t"
+    argnames[1] = "df"
+
+    result, _, status, bound = cdft_which1(t, df)
+    return get_result("stdtr", argnames, result, status, bound, 1)
+
+
+cdef inline double stdtridf(double p, double t) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[3]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "t"
+
+    result, status, bound = cdft_which3(p, q, t)
+    return get_result("stdtridf", argnames, result, status, bound, 1)
+
+
+cdef inline double stdtrit(double df, double p) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[3]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "df"
+
+    result, status, bound = cdft_which2(p, q, df)
+    return get_result("stdtrit", argnames, result, status, bound, 1)
