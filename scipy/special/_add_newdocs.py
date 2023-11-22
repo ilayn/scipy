@@ -14455,12 +14455,174 @@ add_newdoc("ndtri_exp",
     9.262340089798409
     """)
 
+add_newdoc("bdtrik_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("bdtrin_cython",
+    """
+    Private function; do not use.
+    """)
+
 add_newdoc("btdtria_cython",
     """
     Private function; do not use.
     """)
 
 add_newdoc("btdtrib_cython",
+    """
+    Private function; do not use.
+    """)
+
+
+add_newdoc("btdtrik_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("btdtrin_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("chdtriv_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("chndtr_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("chndtridf_cython",
+    """
+    Private function; do not use.
+    """)
+
+
+add_newdoc("chndtrinc_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("chndtrix_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("fdtridfd_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("gdtria_cython",
+    """
+    Private function; do not use.
+    """)
+
+
+add_newdoc("gdtrib_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("gdtrix_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("nbdtrik_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("nbdtrin_cython",
+    """
+    Private function; do not use.
+    """)
+
+
+add_newdoc("ncfdtr_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("ncfdtri_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("ncfdtridfd_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("ncfdtridfn_cython",
+    """
+    Private function; do not use.
+    """)
+
+
+add_newdoc("ncfdtrinc_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("nctdtr_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("nctdtridf_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("nctdtrinc_cython",
+    """
+    Private function; do not use.
+    """)
+
+
+add_newdoc("nctdtrit_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("nrdtrimn_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("nrdtrisd_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("pdtrik_cython",
+    """
+    Private function; do not use.
+    """)
+
+
+add_newdoc("stdtr_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("stdtridf_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("stdtrit_cython",
+    """
+    Private function; do not use.
+    """)
+
+add_newdoc("tklmbda_cephes",
     """
     Private function; do not use.
     """)
