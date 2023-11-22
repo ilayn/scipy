@@ -1557,11 +1557,6 @@
             "tukeylambdacdf": "dd->d"
         }
     },
-    "tklmbda_cephes": {
-        "cephes.h": {
-            "tukeylambdacdf": "dd->d"
-        }
-    },
     "wofz": {
         "_faddeeva.h++": {
             "faddeeva_w": "D->D"
