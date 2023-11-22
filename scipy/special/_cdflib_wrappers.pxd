@@ -300,6 +300,21 @@ cdef inline double nbdtrin(double s, double p, double pr) noexcept nogil:
     return get_result("nbdtrin", argnames, result, status, bound, 1)
 
 
+cdef inline double ncfdtr(double dfn, double dfd, double nc, double f) noexcept nogil:
+    cdef:
+        double result, _, bound
+        int status = 10
+        char *argnames[4]
+
+    argnames[0] = "f"
+    argnames[1] = "dfn"
+    argnames[2] = "dfd"
+    argnames[3] = "nc"
+
+    result, _, status, bound = cdffnc_which1(f, dfn, dfd, nc)
+    return get_result("ncfdtr", argnames, result, status, bound, 0)
+
+
 cdef inline double ncfdtri(double dfn, double dfd, double nc, double p) noexcept nogil:
     cdef:
         double q = 1.0 - p
