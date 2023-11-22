@@ -248,6 +248,22 @@ cdef inline double gdtria(double p, double shp, double x) noexcept nogil:
     return get_result("gdtria", argnames, result, status, bound, 1)
 
 
+cdef inline double gdtrib(double scl, double p, double x) noexcept nogil:
+    cdef:
+        double q = 1.0 - p
+        double result, bound
+        int status = 10
+        char *argnames[4]
+
+    argnames[0] = "p"
+    argnames[1] = "q"
+    argnames[2] = "x"
+    argnames[3] = "scl"
+
+    result, status, bound = cdfgam_which3(p, q, x, scl)
+    return get_result("gdtrib", argnames, result, status, bound, 1)
+
+
 cdef inline double gdtrix(double scl, double shp, double p) noexcept nogil:
     cdef:
         double q = 1.0 - p
