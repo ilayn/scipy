@@ -1553,7 +1553,7 @@
         }
     },
     "tklmbda": {
-        "cdf_wrappers.h": {
+        "cephes.h": {
             "tukeylambdacdf": "dd->d"
         }
     },

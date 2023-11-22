@@ -128,6 +128,7 @@ namespace scipy {
 #undef kolmogc
 #undef kolmogci
 #undef owens_t
+#undef tukeylambdacdf
 	    }
 	}
     }
