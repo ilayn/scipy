@@ -4,17 +4,17 @@ Matrix square root for general matrices and for upper triangular matrices.
 This module exists to avoid cyclic imports.
 
 """
-__all__ = ['sqrtm']
-
+from itertools import product
 import numpy as np
-
 from scipy._lib._util import _asarray_validated
+from scipy.linalg import bandwidth, LinAlgError
 
 # Local imports
 from ._misc import norm
 from .lapack import ztrsyl, dtrsyl
 from ._decomp_schur import schur, rsf2csf
 
+__all__ = ['sqrtm']
 
 
 class SqrtmError(np.linalg.LinAlgError):
@@ -116,32 +116,67 @@ def _sqrtm_triu(T, blocksize=64):
 
 def sqrtm(A, disp=True, blocksize=64):
     """
-    Matrix square root.
+    Matrix square root function.
+
+    For a given array A, it computes an array X such that A = X @ X. Depending
+    on the algebraic properties of A the result can be complex even though A is
+    a real valued array input. If ``A`` has an eigenvalue at the negative
+    real line, the result will be complex regardless. If ``A`` is singular the
+    correctness of the result can still be correct however this cannot be
+    guaranteed.
+
+    The function tries to provide a real square root however this is not always
+    computationally guaranteed; especially when the square root is not possible
+    to be obtained from the array data. A classical example of this case ::
+
+        A = np.array([[-1., 0.], [0., -1]])
+        X = np.array([[m, 1 + m**2], [-1., -m]])
+
+    one can verify that ``X`` is indeed a square-root of ``A`` for any scalar
+    ``m`` however ``X(m)`` is not a polynomial in ``A``, hence not possible
+    to be obtained with the technique used in ``sqrtm``.
 
     Parameters
     ----------
-    A : (N, N) array_like
-        Matrix whose square root to evaluate
+    A : ndarray
+        Input with last two dimensions are square ``(..., n, n)``.
     disp : bool, optional
         Print warning if error in the result is estimated large
         instead of returning estimated error. (Default: True)
+
+        .. deprecated:: 1.15.0
+            This keyword has been deprecated and the warnings are now generated
+            by default. The keyword will be removed in SciPy 1.17.0. To silence
+            the warnings, it is recommended to use ``warnings`` module context
+            managers.
+
     blocksize : integer, optional
         If the blocksize is not degenerate with respect to the
         size of the input array, then use a blocked algorithm. (Default: 64)
 
+        .. deprecated:: 1.15.0
+            This keyword has been deprecated and does not have any effect on
+            the solution. It will be removed in SciPy v1.17.0.
+
     Returns
     -------
-    sqrtm : (N, N) ndarray
-        Value of the sqrt function at `A`. The dtype is float or complex.
-        The precision (data size) is determined based on the precision of
-        input `A`. When the dtype is float, the precision is the same as `A`.
-        When the dtype is complex, the precision is double that of `A`. The
-        precision might be clipped by each dtype precision range.
+    sqA : ndarray
+        The resulting matrix square root with the same shape of ``A``.
 
     errest : float
         (if disp == False)
 
         Frobenius norm of the estimated error, ||err||_F / ||A||_F
+
+    Notes
+    -----
+
+    Uses the recursive algorithm given [1]_ by first obtaining a Schur
+    decomposition via ``xgees`` LAPACK function family. Then uses the triangular
+    structure to compute the square root by recursing along the diagonal blocks.
+
+    If the input is already upper triangular/diagonal, Schur decomposition step
+    is skipped.
 
     References
     ----------
@@ -163,6 +198,45 @@ def sqrtm(A, disp=True, blocksize=64):
            [ 1.,  4.]])
 
     """
+
+    a = np.asarray(A)
+    if a.size == 1 and a.ndim < 2:
+        return np.array([[np.exp(a.item())]])
+
+    if a.ndim < 2:
+        raise LinAlgError('The input array must be at least two-dimensional')
+    if a.shape[-1] != a.shape[-2]:
+        raise LinAlgError('Last 2 dimensions of the array must be square')
+
+    # Empty array
+    if min(*a.shape) == 0:
+        dtype = sqrtm(np.eye(2, dtype=a.dtype)).dtype
+        return np.empty_like(a, dtype=dtype)
+
+    # Scalar case
+    if a.shape[-2:] == (1, 1):
+        return np.sqrt(a)
+
+    if not np.issubdtype(a.dtype, np.inexact):
+        a = a.astype(np.float64)
+    elif a.dtype == np.float16:
+        a = a.astype(np.float32)
+
+    n = a.shape[-1]
+    sA = np.zeros(a.shape, dtype=a.dtype)
+
+    # Main loop to go through the slices of an ndarray and passing to sqrtm
+    for ind in product(*[range(x) for x in a.shape[:-2]]):
+        aw = a[ind]
+
+        lu = bandwidth(aw)
+        if not any(lu):  # a is diagonal?
+            np.einsum('ii->i', sA[ind])[:] = np.sqrt(np.diag(aw))
+            continue
+
+
+
+
     byte_size = np.asarray(A).dtype.itemsize
     A = _asarray_validated(A, check_finite=True, as_inexact=True)
     if len(A.shape) != 2:
