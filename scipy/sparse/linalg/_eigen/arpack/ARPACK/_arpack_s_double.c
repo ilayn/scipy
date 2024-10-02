@@ -11,10 +11,90 @@ static const double unfl = 2.2250738585072014e-308;
 static const double ovfl = 1.0 / 2.2250738585072014e-308;
 static const double ulp = 2.220446049250313e-16;
 
+
 void
-dsaitr(struct ARPACK_dnaupd_variables *V,  double* resid, double* rnorm,
+dsaitr(struct ARPACK_dsaupd_variables *V, double* resid, double* rnorm,
        double* v, int ldv, double* h, int ldh, int* ipntr, double* workd)
 {
+    int i, infol, iter, ipj, irj, ivj, jj, n, tmp_int;
+    double smlnum = unfl * ( V->n / ulp);
+    double xtemp[2] = { 0.0 };
+    const double sq2o2 = sqrt(2.0) / 2.0;
+
+    char *MTYPE = "G", *TRANS = "T", *NORM = "1";
+    int int1 = 1, int0 = 0;
+    double dbl1 = 1.0, dbl0 = 0.0, temp1, tmp_dbl, tst1;
+
+    n = V->n;  // n is constant, this is just for typing convenience
+    ipj = 0;
+    irj = ipj + n;
+    ivj = irj + n;
+
+    if (V->ido == ido_FIRST)
+    {
+         /*-----------------------------*
+         | Initial call to this routine |
+         *-----------------------------*/
+        V->info = 0;
+        V->saitr_step3 = 0;
+        V->saitr_step4 = 0;
+        V->saitr_orth1 = 0;
+        V->saitr_orth2 = 0;
+        V->saitr_restart = 0;
+        V->saitr_j = V->nev;
+    }
+
+     /*------------------------------------------------*
+     | When in reverse communication mode one of:      |
+     | STEP3, STEP4, ORTH1, ORTH2, RSTART              |
+     | will be .true. when ....                        |
+     | STEP3: return from computing OP*v_{j}.          |
+     | STEP4: return from computing B-norm of OP*v_{j} |
+     | ORTH1: return from computing B-norm of r_{j+1}  |
+     | ORTH2: return from computing B-norm of          |
+     |        correction to the residual vector.       |
+     | RSTART: return from OP computations needed by   |
+     |         dgetv0.                                 |
+     *------------------------------------------------*/
+    if (V->saitr_step3) { goto LINE50; }
+    if (V->saitr_step4) { goto LINE60; }
+    if (V->saitr_orth1) { goto LINE70; }
+    if (V->saitr_orth2) { goto LINE90; }
+    if (V->saitr_restart) { goto LINE30; }
+
+     /*----------------------------*
+     | Else this is the first step |
+     *----------------------------*/
+
+     /*-------------------------------------------------------------*
+     |                                                              |
+     |        A R N O L D I     I T E R A T I O N     L O O P       |
+     |                                                              |
+     | Note:  B*r_{j-1} is already in WORKD(1:N)=WORKD(IPJ:IPJ+N-1) |
+     *-------------------------------------------------------------*/
+
+LINE1000:
+
+
+         /*--------------------------------------------------------*
+         | Check for exact zero. Equivalent to determining whether |
+         | a j-step Arnoldi factorization is present.              |
+         *--------------------------------------------------------*/
+
+        if (*rnorm > 0.0) { goto LINE40; }
+
+         /*--------------------------------------------------*
+         | Invariant subspace found, generate a new starting |
+         | vector which is orthogonal to the current Arnoldi |
+         | basis and continue the iteration.                 |
+         *--------------------------------------------------*/
+
+         /*--------------------------------------------*
+         | ITRY is the loop variable that controls the |
+         | maximum amount of times that a restart is   |
+         | attempted. NRSTRT is used by stat.h         |
+         *--------------------------------------------*/
+
 
 }
 
