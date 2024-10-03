@@ -52,15 +52,15 @@ enum ARPACK_ido {
     ido_DONE = 99     // done
 };
 
-/*
+/**
  * With the following structs, we collect all "SAVE"d Fortran variables to track
  * the problem and avoid reentry issues. It is not clean and is laborious but
  * otherwise a full rewrite of ARPACK is needed. There are additional variables
  * in the original Fortran code which are also "SAVE"d however upon inspection,
  * they are assigned and then used in the same call and thus used without saving.
-*/
+**/
 
-struct ARPACK_snaupd_variables {
+struct ARPACK_arnoldi_update_vars_s {
     int bmat;                // bmat = 0, standard, bmat = 1 generalized problem
     int info;                // problem outcome
     int ishift;              // problem parameter
@@ -80,34 +80,34 @@ struct ARPACK_snaupd_variables {
     int getv0_iter;          // getv0 flow control
     int getv0_itry;          // getv0 flow control
     int getv0_orth;          // getv0 flow control
-    int naitr_iter;          // naitr flow control
-    int naitr_j;             // naitr flow control
-    int naitr_orth1;         // naitr flow control
-    int naitr_orth2;         // naitr flow control
-    int naitr_restart;       // naitr flow control
-    int naitr_step3;         // naitr flow control
-    int naitr_step4;         // naitr flow control
-    int naitr_ierr;          // naitr flow control
-    int naup2_initv;         // naupd2 flow control
-    int naup2_iter;          // naupd2 flow control
-    int naup2_getv0;         // naupd2 flow control
-    int naup2_cnorm;         // naupd2 flow control
-    int naup2_kplusp;        // naupd2 flow control
-    int naup2_nev0;          // naupd2 internal compute
-    int naup2_np0;           // naupd2 internal compute
-    int naup2_numcnv;        // naupd2 internal compute
-    int naup2_update;        // naupd2 flow control
-    int naup2_ushift;        // naupd2 flow control
+    int aitr_iter;          // naitr flow control
+    int aitr_j;             // naitr flow control
+    int aitr_orth1;         // naitr flow control
+    int aitr_orth2;         // naitr flow control
+    int aitr_restart;       // naitr flow control
+    int aitr_step3;         // naitr flow control
+    int aitr_step4;         // naitr flow control
+    int aitr_ierr;          // naitr flow control
+    int aup2_initv;         // naupd2 flow control
+    int aup2_iter;          // naupd2 flow control
+    int aup2_getv0;         // naupd2 flow control
+    int aup2_cnorm;         // naupd2 flow control
+    int aup2_kplusp;        // naupd2 flow control
+    int aup2_nev0;          // naupd2 internal compute
+    int aup2_np0;           // naupd2 internal compute
+    int aup2_numcnv;        // naupd2 internal compute
+    int aup2_update;        // naupd2 flow control
+    int aup2_ushift;        // naupd2 flow control
     float tol;               // problem parameter
     float getv0_rnorm0;      // getv0 internal compute
-    float naitr_betaj;       // naitr internal compute
-    float naitr_rnorm1;      // naitr internal compute
-    float naitr_wnorm;       // naitr internal compute
-    float naup2_rnorm;       // naup2 internal compute
+    float aitr_betaj;       // naitr internal compute
+    float aitr_rnorm1;      // naitr internal compute
+    float aitr_wnorm;       // naitr internal compute
+    float aup2_rnorm;       // naup2 internal compute
 };
 
 
-struct ARPACK_dnaupd_variables {
+struct ARPACK_arnoldi_update_vars_d {
     int bmat;                // bmat = 0, standard, bmat = 1 generalized problem
     int info;                // problem outcome
     int ishift;              // problem parameter
@@ -127,78 +127,32 @@ struct ARPACK_dnaupd_variables {
     int getv0_iter;          // getv0 flow control
     int getv0_itry;          // getv0 flow control
     int getv0_orth;          // getv0 flow control
-    int naitr_ierr;          // naitr flow control
-    int naitr_iter;          // naitr flow control
-    int naitr_j;             // naitr flow control
-    int naitr_orth1;         // naitr flow control
-    int naitr_orth2;         // naitr flow control
-    int naitr_restart;       // naitr flow control
-    int naitr_step3;         // naitr flow control
-    int naitr_step4;         // naitr flow control
-    int naup2_initv;         // naupd2 flow control
-    int naup2_iter;          // naupd2 flow control
-    int naup2_getv0;         // naupd2 flow control
-    int naup2_cnorm;         // naupd2 flow control
-    int naup2_kplusp;        // naupd2 flow control
-    int naup2_nev0;          // naupd2 internal compute
-    int naup2_np0;           // naupd2 internal compute
-    int naup2_numcnv;        // naupd2 internal compute
-    int naup2_update;        // naupd2 flow control
-    int naup2_ushift;        // naupd2 flow control
+    int aitr_ierr;          // naitr flow control
+    int aitr_iter;          // naitr flow control
+    int aitr_j;             // naitr flow control
+    int aitr_orth1;         // naitr flow control
+    int aitr_orth2;         // naitr flow control
+    int aitr_restart;       // naitr flow control
+    int aitr_step3;         // naitr flow control
+    int aitr_step4;         // naitr flow control
+    int aup2_initv;         // naupd2 flow control
+    int aup2_iter;          // naupd2 flow control
+    int aup2_getv0;         // naupd2 flow control
+    int aup2_cnorm;         // naupd2 flow control
+    int aup2_kplusp;        // naupd2 flow control
+    int aup2_nev0;          // naupd2 internal compute
+    int aup2_np0;           // naupd2 internal compute
+    int aup2_numcnv;        // naupd2 internal compute
+    int aup2_update;        // naupd2 flow control
+    int aup2_ushift;        // naupd2 flow control
     double tol;              // problem parameter
     double getv0_rnorm0;     // getv0 internal compute
-    double naitr_betaj;      // naitr internal compute
-    double naitr_rnorm1;     // naitr internal compute
-    double naitr_wnorm;      // naitr internal compute
-    double naup2_rnorm;      // naup2 internal compute
+    double aitr_betaj;      // naitr internal compute
+    double aitr_rnorm1;     // naitr internal compute
+    double aitr_wnorm;      // naitr internal compute
+    double aup2_rnorm;      // naup2 internal compute
 };
 
-
-struct ARPACK_dsaupd_variables {
-    int bmat;                // bmat = 0, standard, bmat = 1 generalized problem
-    int info;                // problem outcome
-    int ishift;              // problem parameter
-    int maxiter;             // problem parameter
-    int mode;                // problem parameter
-    int n;                   // problem parameter
-    int nconv;               // problem outcome
-    int ncv;                 // problem parameter
-    int nev;                 // problem parameter
-    int np;                  // problem intermediate
-    int numop;               // problem intermediate
-    int numpb;               // problem intermediate
-    int numreo;              // problem intermediate
-    enum ARPACK_ido ido;     // naupd flow control
-    enum ARPACK_which which; // naupd flow control
-    int getv0_first;         // getv0 flow control
-    int getv0_iter;          // getv0 flow control
-    int getv0_itry;          // getv0 flow control
-    int getv0_orth;          // getv0 flow control
-    int saitr_ierr;          // naitr flow control
-    int saitr_iter;          // naitr flow control
-    int saitr_j;             // naitr flow control
-    int saitr_orth1;         // naitr flow control
-    int saitr_orth2;         // naitr flow control
-    int saitr_restart;       // naitr flow control
-    int saitr_step3;         // naitr flow control
-    int saitr_step4;         // naitr flow control
-    int saup2_initv;         // naupd2 flow control
-    int saup2_iter;          // naupd2 flow control
-    int saup2_getv0;         // naupd2 flow control
-    int saup2_cnorm;         // naupd2 flow control
-    int saup2_kplusp;        // naupd2 flow control
-    int saup2_nev0;          // naupd2 internal compute
-    int saup2_np0;           // naupd2 internal compute
-    int saup2_numcnv;        // naupd2 internal compute
-    int saup2_update;        // naupd2 flow control
-    int saup2_ushift;        // naupd2 flow control
-    double tol;              // problem parameter
-    double getv0_rnorm0;     // getv0 internal compute
-    double saitr_betaj;      // naitr internal compute
-    double saitr_rnorm1;     // naitr internal compute
-    double saitr_wnorm;      // naitr internal compute
-    double saup2_rnorm;      // naup2 internal compute
-};
 
 /*
  * The following function is extracted out from classical ARPACK code in order
