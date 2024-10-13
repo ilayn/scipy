@@ -29,7 +29,7 @@ enum ARPACK_neupd_type {
 
 
 void
-sneupd(struct ARPACK_snaupd_variables *V, int rvec, int howmny, int* select,
+sneupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select,
        float* dr, float* di, float* z, int ldz, float sigmar, float sigmai,
        float* workev, float* resid, float* v, int ldv, int* ipntr, float* workd,
        float* workl)
@@ -559,7 +559,7 @@ sneupd(struct ARPACK_snaupd_variables *V, int rvec, int howmny, int* select,
 
 
 void
-snaupd(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
+snaupd(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
        int* ipntr, float* workd, float* workl)
 {
     int bounds, ierr, ih, iq, iw, ldh, ldq, nev0, next, iritzi, iritzr;
@@ -663,7 +663,7 @@ snaupd(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
 
 
 void
-snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
+snaup2(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
        float* h, int ldh, float* ritzr, float* ritzi, float* bounds,
        float* q, int ldq, float* workl, int* ipntr, float* workd)
 {
@@ -674,8 +674,8 @@ snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
 
     if (V->ido == 0)
     {
-        V->naup2_nev0 = V->nev;
-        V->naup2_np0 = V->np;
+        V->aup2_nev0 = V->nev;
+        V->aup2_np0 = V->np;
 
          /*------------------------------------*
          | kplusp is the bound on the largest  |
@@ -686,28 +686,28 @@ snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
          |      iteration step.                |
          *------------------------------------*/
 
-        V->naup2_kplusp = V->nev + V->np;
+        V->aup2_kplusp = V->nev + V->np;
         V->nconv = 0;
-        V->naup2_iter = 0;
+        V->aup2_iter = 0;
 
          /*--------------------------------------*
          | Set flags for computing the first NEV |
          | steps of the Arnoldi factorization.   |
          *--------------------------------------*/
-        V->naup2_getv0 = 1;
-        V->naup2_update = 0;
-        V->naup2_ushift = 0;
-        V->naup2_cnorm = 0;
+        V->aup2_getv0 = 1;
+        V->aup2_update = 0;
+        V->aup2_ushift = 0;
+        V->aup2_cnorm = 0;
 
         if (V->info != 0)
         {
              /*-------------------------------------------*
              | User provides the initial residual vector. |
              *-------------------------------------------*/
-            V->naup2_initv = 1;
+            V->aup2_initv = 1;
             V->info = 0;
         } else {
-            V->naup2_initv = 0;
+            V->aup2_initv = 0;
         }
     }
 
@@ -715,11 +715,11 @@ snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
      | Get a possibly random starting vector and   |
      | force it into the range of the operator OP. |
      *--------------------------------------------*/
-    if (V->naup2_getv0)
+    if (V->aup2_getv0)
     {
-        sgetv0(V, V->naup2_initv, V->n, 0, v, ldv, resid, &V->naup2_rnorm, ipntr, workd);
+        sgetv0(V, V->aup2_initv, V->n, 0, v, ldv, resid, &V->aup2_rnorm, ipntr, workd);
         if (V->ido != 99) { return; }
-        if (V->naup2_rnorm == 0.0)
+        if (V->aup2_rnorm == 0.0)
         {
              /*------------------------------------------------------*
              | The initial vector is zero. It is improbable to hit   |
@@ -727,10 +727,10 @@ snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
              | the rest figure things out for zero eigenvalues.      |
              *------------------------------------------------------*/
             generate_random_vector_s(&V->n, resid);
-            V->naup2_rnorm = snrm2_(&V->n, resid, &int1);
-            sscal_(&V->n, &V->naup2_rnorm, resid, &int1);
+            V->aup2_rnorm = snrm2_(&V->n, resid, &int1);
+            sscal_(&V->n, &V->aup2_rnorm, resid, &int1);
         }
-        V->naup2_getv0 = 0;
+        V->aup2_getv0 = 0;
         V->ido = 0;
     }
 
@@ -738,24 +738,24 @@ snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
      | Back from reverse communication : |
      | continue with update step         |
      *----------------------------------*/
-    if (V->naup2_update) { goto LINE20; }
+    if (V->aup2_update) { goto LINE20; }
 
      /*------------------------------------------*
      | Back from computing user specified shifts |
      *------------------------------------------*/
-    if (V->naup2_ushift) { goto LINE50; }
+    if (V->aup2_ushift) { goto LINE50; }
 
      /*------------------------------------*
      | Back from computing residual norm   |
      | at the end of the current iteration |
      *------------------------------------*/
-    if (V->naup2_cnorm) { goto LINE100; }
+    if (V->aup2_cnorm) { goto LINE100; }
 
      /*---------------------------------------------------------*
      | Compute the first NEV steps of the Arnoldi factorization |
      *---------------------------------------------------------*/
 
-    dnaitr(V, resid, &V->naup2_rnorm, v, ldv, h, ldh, ipntr, workd, &V->info);
+    dnaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd, &V->info);
 
      /*--------------------------------------------------*
      | ido .ne. 99 implies use of reverse communication  |
@@ -766,7 +766,7 @@ snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
     if (V->info > 0)
     {
         V->np = V->info;
-        V->maxiter = V->naup2_iter;
+        V->maxiter = V->aup2_iter;
         V->info = -9999;
         V->ido = 99;
         return;
@@ -781,20 +781,20 @@ snaup2(struct ARPACK_dnaupd_variables *V, float* resid, float* v, int ldv,
      *-------------------------------------------------------------*/
 
 LINE1000:
-    V->naup2_iter += 1;
+    V->aup2_iter += 1;
 
      /*----------------------------------------------------------*
      | Compute NP additional steps of the Arnoldi factorization. |
      | Adjust NP since NEV might have been updated by last call  |
      | to the shift application routine dnapps .                 |
      *----------------------------------------------------------*/
-    V->np = V->naup2_kplusp - V->nev;
+    V->np = V->aup2_kplusp - V->nev;
     V->ido = 0;
 
 LINE20:
-    V->naup2_update = 1;
+    V->aup2_update = 1;
 
-    snaitr(V, resid, &V->naup2_rnorm, v, ldv, h, ldh, ipntr, workd);
+    snaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
 
      /*--------------------------------------------------*
      | ido .ne. 99 implies use of reverse communication  |
@@ -805,19 +805,19 @@ LINE20:
 
     if (V->info > 0) {
         V->np = V->info;
-        V->maxiter = V->naup2_iter;
+        V->maxiter = V->aup2_iter;
         V->info = -9999;
         V->ido = 99;
         return;
     }
-    V->naup2_update = 0;
+    V->aup2_update = 0;
 
      /*-------------------------------------------------------*
      | Compute the eigenvalues and corresponding error bounds |
      | of the current upper Hessenberg matrix.                |
      *-------------------------------------------------------*/
 
-    sneigh(&V->naup2_rnorm, V->naup2_kplusp, h, ldh, ritzr, ritzi, bounds,
+    sneigh(&V->aup2_rnorm, V->aup2_kplusp, h, ldh, ritzr, ritzi, bounds,
            q, ldq, workl, &V->info);
 
     if (V->info != 0)
@@ -832,12 +832,12 @@ LINE20:
      | bounds obtained from dneigh.                       |
      *---------------------------------------------------*/
 
-    tmp_int = V->naup2_kplusp * V->naup2_kplusp;
-    scopy_(&V->naup2_kplusp, ritzr, &int1, &workl[tmp_int], &int1);
-    tmp_int += V->naup2_kplusp;
-    scopy_(&V->naup2_kplusp, ritzi, &int1, &workl[tmp_int], &int1);
-    tmp_int += V->naup2_kplusp;
-    scopy_(&V->naup2_kplusp, bounds, &int1, &workl[tmp_int], &int1);
+    tmp_int = V->aup2_kplusp * V->aup2_kplusp;
+    scopy_(&V->aup2_kplusp, ritzr, &int1, &workl[tmp_int], &int1);
+    tmp_int += V->aup2_kplusp;
+    scopy_(&V->aup2_kplusp, ritzi, &int1, &workl[tmp_int], &int1);
+    tmp_int += V->aup2_kplusp;
+    scopy_(&V->aup2_kplusp, bounds, &int1, &workl[tmp_int], &int1);
 
 
      /*--------------------------------------------------*
@@ -853,13 +853,13 @@ LINE20:
      | longer used as of version 2.1.                    |
      *--------------------------------------------------*/
 
-    V->nev = V->naup2_nev0;
-    V->np = V->naup2_np0;
-    V->naup2_numcnv = V->nev;
+    V->nev = V->aup2_nev0;
+    V->np = V->aup2_np0;
+    V->aup2_numcnv = V->nev;
 
     sngets(V, &V->nev, &V->np, ritzr, ritzi, bounds);
 
-    if (V->nev == V->naup2_nev0 + 1) { V->naup2_numcnv = V->naup2_numcnv + 1;}
+    if (V->nev == V->aup2_nev0 + 1) { V->aup2_numcnv = V->aup2_numcnv + 1;}
 
      /*------------------*
      | Convergence test. |
@@ -890,7 +890,7 @@ LINE20:
     }
     // 30
 
-    if ((V->nconv >= V->naup2_numcnv) || (V->naup2_iter > V->maxiter) || (V->np == 0))
+    if ((V->nconv >= V->aup2_numcnv) || (V->aup2_iter > V->maxiter) || (V->np == 0))
     {
          /*-----------------------------------------------*
          | Prepare to exit. Put the converged Ritz values |
@@ -904,7 +904,7 @@ LINE20:
          |  rnorm to _neupd if needed               |
          *-----------------------------------------*/
 
-         h[2] = V->naup2_rnorm;
+         h[2] = V->aup2_rnorm;
 
          /*---------------------------------------------*
          | To be consistent with dngets , we first do a |
@@ -924,7 +924,7 @@ LINE20:
         if (V->which == which_LI) { temp_which = which_SM; }
         if (V->which == which_SI) { temp_which = which_LM; }
 
-        ssortc(temp_which, 1, V->naup2_kplusp, ritzr, ritzi, bounds);
+        ssortc(temp_which, 1, V->aup2_kplusp, ritzr, ritzi, bounds);
 
         if (V->which == which_LM) { temp_which = which_SM; }
         if (V->which == which_SM) { temp_which = which_LM; }
@@ -933,14 +933,14 @@ LINE20:
         if (V->which == which_LI) { temp_which = which_SI; }
         if (V->which == which_SI) { temp_which = which_LI; }
 
-        ssortc(temp_which, 1, V->naup2_kplusp, ritzr, ritzi, bounds);
+        ssortc(temp_which, 1, V->aup2_kplusp, ritzr, ritzi, bounds);
 
          /*-------------------------------------------------*
          | Scale the Ritz estimate of each Ritz value       |
          | by 1 / max(eps23,magnitude of the Ritz value).   |
          *-------------------------------------------------*/
 
-        for (j = 0; j < V->naup2_numcnv; j++)
+        for (j = 0; j < V->aup2_numcnv; j++)
         {
             temp = fmaxf(eps23, hypotf(ritzr[j], ritzi[j]));
             bounds[j] = bounds[j] / temp;
@@ -954,14 +954,14 @@ LINE20:
          | (in the case when NCONV < NEV.)                    |
          *---------------------------------------------------*/
         temp_which = which_LR;
-        ssortc(temp_which, 1, V->naup2_numcnv, bounds, ritzr, ritzi);
+        ssortc(temp_which, 1, V->aup2_numcnv, bounds, ritzr, ritzi);
 
          /*---------------------------------------------*
          | Scale the Ritz estimate back to its original |
          | value.                                       |
          *---------------------------------------------*/
 
-        for (j = 0; j < V->naup2_numcnv; j++)
+        for (j = 0; j < V->aup2_numcnv; j++)
         {
             temp = fmaxf(eps23, hypotf(ritzr[j], ritzi[j]));
             bounds[j] = bounds[j] * temp;
@@ -976,7 +976,7 @@ LINE20:
 
         ssortc(V->which, 1, V->nconv, ritzr, ritzi, bounds);
 
-        if ((V->naup2_iter > V->maxiter) && (V->nconv < V->naup2_numcnv))
+        if ((V->aup2_iter > V->maxiter) && (V->nconv < V->aup2_numcnv))
         {
              /*-----------------------------------*
              | Max iterations have been exceeded. |
@@ -984,7 +984,7 @@ LINE20:
             V->info = 1;
         }
 
-        if ((V->np == 0) && (V->nconv < V->naup2_numcnv))
+        if ((V->np == 0) && (V->nconv < V->aup2_numcnv))
         {
              /*--------------------*
              | No shifts to apply. |
@@ -993,12 +993,12 @@ LINE20:
         }
 
         V->np = V->nconv;
-        V->maxiter = V->naup2_iter;
-        V->nev = V->naup2_numcnv;
+        V->maxiter = V->aup2_iter;
+        V->nev = V->aup2_numcnv;
         V->ido = 99;
         return;
 
-    } else if ((V->nconv < V->naup2_numcnv) && (V->ishift)) {
+    } else if ((V->nconv < V->aup2_numcnv) && (V->ishift)) {
          /*------------------------------------------------*
          | Do not have all the requested eigenvalues yet.  |
          | To prevent possible stagnation, adjust the size |
@@ -1006,9 +1006,9 @@ LINE20:
          *------------------------------------------------*/
         int nevbef = V->nev;
         V->nev += (V->nconv > (V->np / 2) ? (V->np / 2) : V->nconv);
-        if ((V->nev == 1) && (V->naup2_kplusp >= 6)) {
-            V->nev = V->naup2_kplusp / 2;
-        } else if ((V->nev == 1) && (V->naup2_kplusp > 3)) {
+        if ((V->nev == 1) && (V->aup2_kplusp >= 6)) {
+            V->nev = V->aup2_kplusp / 2;
+        } else if ((V->nev == 1) && (V->aup2_kplusp > 3)) {
             V->nev = 2;
         }
 
@@ -1018,15 +1018,15 @@ LINE20:
          | np == 0 (note that dngets below can bump nev by 1). If np == 0, |
          | the next call to `dnaitr` will write out-of-bounds.             */
 
-        if (V->nev > (V->naup2_kplusp - 2)) {
-            V->nev = V->naup2_kplusp - 2;
+        if (V->nev > (V->aup2_kplusp - 2)) {
+            V->nev = V->aup2_kplusp - 2;
         }
 
          /*
          | SciPy Fix End                                                    |
          *-----------------------------------------------------------------*/
 
-        V->np = V->naup2_kplusp - V->nev;
+        V->np = V->aup2_kplusp - V->nev;
 
         if (nevbef < V->nev) {
             sngets(V, &V->nev, &V->np, ritzr, ritzi, bounds);
@@ -1041,7 +1041,7 @@ LINE20:
          | compute the shifts. They are returned in the first    |
          | 2*NP locations of WORKL.                              |
          *------------------------------------------------------*/
-        V->naup2_ushift = 1;
+        V->aup2_ushift = 1;
         V->ido = 3;
         return;
     }
@@ -1053,7 +1053,7 @@ LINE50:
      | in WORKL(1:2*NP)                   |
      *-----------------------------------*/
 
-    V->naup2_ushift = 0;
+    V->aup2_ushift = 0;
 
     if (V->ishift == 0)
     {
@@ -1081,7 +1081,7 @@ LINE50:
      | the first step of the next call to dnaitr . |
      *--------------------------------------------*/
 
-    V->naup2_cnorm = 1;
+    V->aup2_cnorm = 1;
     if (V->bmat)
     {
         scopy_(&V->n, resid, &int1, &workd[V->n], &int1);
@@ -1104,10 +1104,10 @@ LINE100:
 
     if (V->bmat)
     {
-        V->naup2_rnorm = sdot_(&V->n, resid, &int1, workd, &int1);
-        V->naup2_rnorm = sqrtf(fabsf(V->naup2_rnorm));
+        V->aup2_rnorm = sdot_(&V->n, resid, &int1, workd, &int1);
+        V->aup2_rnorm = sqrtf(fabsf(V->aup2_rnorm));
     } else {
-        V->naup2_rnorm = snrm2(&V->n, resid, &int1);
+        V->aup2_rnorm = snrm2(&V->n, resid, &int1);
     }
 
     goto LINE1000;
@@ -1259,7 +1259,7 @@ sneigh(float* rnorm, int n, float* h, int ldh, float* ritzr, float* ritzi,
 
 
 void
-snaitr(struct ARPACK_dnaupd_variables *V,  float* resid, float* rnorm,
+snaitr(struct ARPACK_arnoldi_update_vars_s *V,  float* resid, float* rnorm,
        float* v, int ldv, float* h, int ldh, int* ipntr, float* workd)
 {
     int i, infol, iter, ipj, irj, ivj, jj, n, tmp_int;
@@ -1282,12 +1282,12 @@ snaitr(struct ARPACK_dnaupd_variables *V,  float* resid, float* rnorm,
          | Initial call to this routine |
          *-----------------------------*/
         V->info = 0;
-        V->naitr_step3 = 0;
-        V->naitr_step4 = 0;
-        V->naitr_orth1 = 0;
-        V->naitr_orth2 = 0;
-        V->naitr_restart = 0;
-        V->naitr_j = V->nev;
+        V->aitr_step3 = 0;
+        V->aitr_step4 = 0;
+        V->aitr_orth1 = 0;
+        V->aitr_orth2 = 0;
+        V->aitr_restart = 0;
+        V->aitr_j = V->nev;
     }
 
      /*------------------------------------------------*
@@ -1302,11 +1302,11 @@ snaitr(struct ARPACK_dnaupd_variables *V,  float* resid, float* rnorm,
      | RSTART: return from OP computations needed by   |
      |         dgetv0.                                 |
      *------------------------------------------------*/
-    if (V->naitr_step3) { goto LINE50; }
-    if (V->naitr_step4) { goto LINE60; }
-    if (V->naitr_orth1) { goto LINE70; }
-    if (V->naitr_orth2) { goto LINE90; }
-    if (V->naitr_restart) { goto LINE30; }
+    if (V->aitr_step3) { goto LINE50; }
+    if (V->aitr_step4) { goto LINE60; }
+    if (V->aitr_orth1) { goto LINE70; }
+    if (V->aitr_orth2) { goto LINE90; }
+    if (V->aitr_restart) { goto LINE30; }
 
      /*----------------------------*
      | Else this is the first step |
@@ -1327,7 +1327,7 @@ LINE1000:
      | an exact j-step Arnoldi factorization is present. |
      *--------------------------------------------------*/
 
-    V->naitr_betaj = *rnorm;
+    V->aitr_betaj = *rnorm;
     if (*rnorm > 0.0) { goto LINE40; }
 
      /*--------------------------------------------------*
@@ -1335,18 +1335,18 @@ LINE1000:
      | vector which is orthogonal to the current Arnoldi |
      | basis and continue the iteration.                 |
      *--------------------------------------------------*/
-    V->naitr_betaj = 0.0;
+    V->aitr_betaj = 0.0;
     V->getv0_itry = 1;
 
 LINE20:
-    V->naitr_restart = 1;
+    V->aitr_restart = 1;
     V->ido = 0;
 
 LINE30:
-    dgetv0(V, 0, n, V->naitr_j, v, ldv, resid, rnorm, ipntr, workd, &V->naitr_ierr);
+    dgetv0(V, 0, n, V->aitr_j, v, ldv, resid, rnorm, ipntr, workd, &V->aitr_ierr);
     if (V->ido != 99) { return; }
 
-    if (V->naitr_ierr < 0)
+    if (V->aitr_ierr < 0)
     {
         V->getv0_itry += 1;
         if (V->getv0_itry <= 3) { goto LINE20; }
@@ -1355,7 +1355,7 @@ LINE30:
          | Set INFO to the size of the invariant subspace |
          | which spans OP and exit.                       |
          *-----------------------------------------------*/
-        V->info = V->naitr_j;
+        V->info = V->aitr_j;
         V->ido = 99;
         return;
     }
@@ -1368,14 +1368,14 @@ LINE40:
      | when reciprocating a small RNORM, test against lower    |
      | machine bound.                                          |
      *--------------------------------------------------------*/
-    scopy_(&n, resid, &int1, &v[ldv*(V->naitr_j)], &int1);
+    scopy_(&n, resid, &int1, &v[ldv*(V->aitr_j)], &int1);
     if (*rnorm >= unfl)
     {
         temp1 = 1.0 / *rnorm;
-        sscal_(&n, &temp1, &v[ldv*(V->naitr_j)], &int1);
+        sscal_(&n, &temp1, &v[ldv*(V->aitr_j)], &int1);
         sscal_(&n, &temp1, &workd[ipj], &int1);
     } else {
-        slascl_(MTYPE, &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*(V->naitr_j)], &n, &infol);
+        slascl_(MTYPE, &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*(V->aitr_j)], &n, &infol);
         slascl_(MTYPE, &i, &i, rnorm, &dbl1, &n, &int1, &workd[ipj], &n, &infol);
     }
 
@@ -1383,8 +1383,8 @@ LINE40:
      | STEP 3:  r_{j} = OP*v_{j}; Note that p_{j} = B*v_{j} |
      | Note that this is not quite yet r_{j}. See STEP 4    |
      *-----------------------------------------------------*/
-    V->naitr_step3 = 1;
-    scopy_(&n, &v[ldv*(V->naitr_j)], &int1, &workd[ivj], &int1);
+    V->aitr_step3 = 1;
+    scopy_(&n, &v[ldv*(V->aitr_j)], &int1, &workd[ivj], &int1);
     ipntr[0] = ivj;
     ipntr[1] = irj;
     ipntr[2] = ipj;
@@ -1401,7 +1401,7 @@ LINE50:
      | WORKD(IRJ:IRJ+N-1) := OP*v_{j}   |
      | if step3 = .true.                |
      *---------------------------------*/
-    V->naitr_step3 = 0;
+    V->aitr_step3 = 0;
 
      /*-----------------------------------------*
      | Put another copy of OP*v_{j} into RESID. |
@@ -1414,7 +1414,7 @@ LINE50:
      *--------------------------------------*/
     if (V->bmat)
     {
-        V->naitr_step4 = 1;
+        V->aitr_step4 = 1;
         ipntr[0] = irj;
         ipntr[1] = ipj;
         V->ido = 2;
@@ -1432,7 +1432,7 @@ LINE60:
      | WORKD(IPJ:IPJ+N-1) := B*OP*v_{j} |
      | if step4 = .true.                |
      *---------------------------------*/
-    V->naitr_step4 = 0;
+    V->aitr_step4 = 0;
 
      /*------------------------------------*
      | The following is needed for STEP 5. |
@@ -1441,10 +1441,10 @@ LINE60:
 
     if (V->bmat)
     {
-        V->naitr_wnorm = sdot_(&n, resid, &int1, &workd[ipj], &int1);
-        V->naitr_wnorm = sqrtf(fabsf(V->naitr_wnorm));
+        V->aitr_wnorm = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        V->aitr_wnorm = sqrtf(fabsf(V->aitr_wnorm));
     } else {
-        V->naitr_wnorm = snrm2_(&n, resid, &int1);
+        V->aitr_wnorm = snrm2_(&n, resid, &int1);
     }
 
      /*----------------------------------------*
@@ -1459,7 +1459,7 @@ LINE60:
      | Compute the j Fourier coefficients w_{j} |
      | WORKD(IPJ:IPJ+N-1) contains B*OP*v_{j}.  |
      *-----------------------------------------*/
-    sgemv_(TRANS, &n, &V->naitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &h[ldh*(V->naitr_j)], &int1);
+    sgemv_(TRANS, &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &h[ldh*(V->aitr_j)], &int1);
 
      /*-------------------------------------*
      | Orthogonalize r_{j} against V_{j}.   |
@@ -1467,10 +1467,10 @@ LINE60:
      *-------------------------------------*/
     TRANS = "N";
     tmp_dbl = -1.0;
-    sgemv_(TRANS, &n, &V->naitr_j, &tmp_dbl, v, &ldv, &h[ldv*(V->naitr_j)], &int1, &dbl1, resid, &int1);
-    if (V->naitr_j > 0) { h[V->naitr_j + ldh*(V->naitr_j-1)] = V->naitr_betaj; }
+    sgemv_(TRANS, &n, &V->aitr_j, &tmp_dbl, v, &ldv, &h[ldv*(V->aitr_j)], &int1, &dbl1, resid, &int1);
+    if (V->aitr_j > 0) { h[V->aitr_j + ldh*(V->aitr_j-1)] = V->aitr_betaj; }
 
-    V->naitr_orth1 = 1;
+    V->aitr_orth1 = 1;
     if (V->bmat)
     {
         scopy_(&n, resid, &int1, &workd[irj], &int1);
@@ -1492,7 +1492,7 @@ LINE70:
      | WORKD(IPJ:IPJ+N-1) := B*r_{j}.                    |
      *--------------------------------------------------*/
 
-    V->naitr_orth1 = 0;
+    V->aitr_orth1 = 0;
 
      /*-----------------------------*
      | Compute the B-norm of r_{j}. |
@@ -1524,7 +1524,7 @@ LINE70:
      *----------------------------------------------------------*/
 
     if (*rnorm > sq2o2) { goto LINE100; }
-    V->naitr_iter = 0;
+    V->aitr_iter = 0;
 
      /*--------------------------------------------------*
      | Enter the Iterative refinement phase. If further  |
@@ -1540,7 +1540,7 @@ LINE80:
      *---------------------------------------------------*/
 
     TRANS = "T";
-    sgemv_(TRANS, &n, &V->naitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
+    sgemv_(TRANS, &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
 
      /*--------------------------------------------*
      | Compute the correction to the residual:     |
@@ -1550,9 +1550,9 @@ LINE80:
      *--------------------------------------------*/
     TRANS = "N";
     tmp_dbl = -1.0;
-    sgemv_(TRANS, &n, &V->naitr_j, &tmp_dbl, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
-    saxpy_(&V->naitr_j, &dbl1, &workd[irj], &int1, &h[ldh*V->naitr_j], &int1);
-    V->naitr_orth2 = 1;
+    sgemv_(TRANS, &n, &V->aitr_j, &tmp_dbl, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
+    saxpy_(&V->aitr_j, &dbl1, &workd[irj], &int1, &h[ldh*V->aitr_j], &int1);
+    V->aitr_orth2 = 1;
     if (V->bmat)
     {
         scopy_(&n, resid, &int1, &workd[irj], &int1);
@@ -1578,17 +1578,17 @@ LINE90:
      *----------------------------------------------------*/
     if (V->bmat)
     {
-        V->naitr_rnorm1 = sdot_(&n, resid, &int1, &workd[ipj], &int1);
-        V->naitr_rnorm1 = sqrtf(fabsf(V->naitr_rnorm1));
+        V->aitr_rnorm1 = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        V->aitr_rnorm1 = sqrtf(fabsf(V->aitr_rnorm1));
     } else {
-        V->naitr_rnorm1 = snrm2_(&n, resid, &int1);
+        V->aitr_rnorm1 = snrm2_(&n, resid, &int1);
     }
 
      /*----------------------------------------*
      | Determine if we need to perform another |
      | step of re-orthogonalization.           |
      *----------------------------------------*/
-    if (V->naitr_rnorm1 > sq2o2)
+    if (V->aitr_rnorm1 > sq2o2)
     {
          /*--------------------------------------*
          | No need for further refinement.       |
@@ -1599,14 +1599,14 @@ LINE90:
          | and the old residual vector share an  |
          | angle of less than arcCOS(0.717)      |
          *--------------------------------------*/
-        *rnorm = V->naitr_rnorm1;
+        *rnorm = V->aitr_rnorm1;
 
     } else {
          /*------------------------------------------*
          | Another step of iterative refinement step |
          | is required.                              |
          *------------------------------------------*/
-        *rnorm = V->naitr_rnorm1;
+        *rnorm = V->aitr_rnorm1;
         iter += 1;
         if (iter < 2) { goto LINE80; }
 
@@ -1622,14 +1622,14 @@ LINE90:
 
 LINE100:
 
-    V->naitr_restart = 0;
-    V->naitr_orth2 = 0;
+    V->aitr_restart = 0;
+    V->aitr_orth2 = 0;
 
      /*-----------------------------------*
      | STEP 6: Update  j = j+1;  Continue |
      *-----------------------------------*/
-    V->naitr_j += 1;
-    if (V->naitr_j >= V->nev + V->np)
+    V->aitr_j += 1;
+    if (V->aitr_j >= V->nev + V->np)
     {
         V->ido = 99;
         int k = (V->nev > 1 ? V->nev : 1);
@@ -2050,7 +2050,7 @@ LINE20:
 
 
 void
-sngets(struct ARPACK_dnaupd_variables *V, int* kev, int* np,
+sngets(struct ARPACK_arnoldi_update_vars_s *V, int* kev, int* np,
        float* ritzr, float* ritzi, float* bounds)
 {
      /*---------------------------------------------------*
@@ -2117,7 +2117,7 @@ sngets(struct ARPACK_dnaupd_variables *V, int* kev, int* np,
 
 
 void
-sgetv0(struct ARPACK_dnaupd_variables *V, const int initv, const int n, const int j,
+sgetv0(struct ARPACK_arnoldi_update_vars_s *V, const int initv, const int n, const int j,
        float* v, int ldv, float* resid, float* rnorm, int* ipntr, float* workd)
 {
     int jj, int1 = 1, int0 = 0, intm1 = -1, tmp_int;
