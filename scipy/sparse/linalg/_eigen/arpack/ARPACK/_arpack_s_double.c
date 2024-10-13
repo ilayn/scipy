@@ -11,6 +11,528 @@ static const double unfl = 2.2250738585072014e-308;
 static const double ovfl = 1.0 / 2.2250738585072014e-308;
 static const double ulp = 2.220446049250313e-16;
 
+void
+dsaupd(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv,
+       int* ipntr, double* workd, double* workl)
+{
+
+}
+
+
+void
+dsaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv,
+       double* h, int ldh, double* ritz, double* bounds,
+       double* q, int ldq, double* workl, int* ipntr, double* workd)
+{
+    enum ARPACK_which temp_which;
+    int ierr, initv, int1 = 1, j, nev0, np0, tmp_int, tmp_int2;
+    int nevbef, nevd2, nevm2;
+    const double eps23 = pow(ulp, 2.0 / 3.0);
+    double temp = 0.0;
+
+    if (V->ido == ido_FIRST)
+    {
+         /*------------------------------------*
+         | nev0 and np0 are integer variables  |
+         | hold the initial values of NEV & NP |
+         *------------------------------------*/
+        V->aup2_nev0 = V->nev;
+        V->aup2_np0 = V->np;
+
+         /*------------------------------------*
+         | kplusp is the bound on the largest  |
+         |        Lanczos factorization built. |
+         | nconv is the current number of      |
+         |        "converged" eigenvalues.     |
+         | iter is the counter on the current  |
+         |      iteration step.                |
+         *------------------------------------*/
+
+        V->aup2_kplusp = V->nev + V->np;
+        V->nconv = 0;
+        V->aup2_iter = 0;
+
+         /*--------------------------------------------*
+         | Set flags for computing the first NEV steps |
+         | of the Lanczos factorization.               |
+         *--------------------------------------------*/
+
+        V->aup2_getv0 = 1;
+        V->aup2_update = 0;
+        V->aup2_cnorm = 0;
+        V->aup2_ushift = 0;
+
+        if (V->info != 0)
+        {
+             /*-------------------------------------------*
+             | User provides the initial residual vector. |
+             *-------------------------------------------*/
+            V->aup2_initv = 1;
+            V->info = 0;
+        } else {
+            V->aup2_initv = 0;
+        }
+    }
+
+     /*--------------------------------------------*
+     | Get a possibly random starting vector and   |
+     | force it into the range of the operator OP. |
+     *--------------------------------------------*/
+    if (V->aup2_getv0)
+    {
+        dgetv0(V, V->aup2_initv, V->n, 0, v, ldv, resid, &V->aup2_rnorm, ipntr, workd);
+        if (V->ido != 99) { return; }
+        if (V->aup2_rnorm == 0.0)
+        {
+             /*------------------------------------------------------*
+             | The initial vector is zero. It is improbable to hit   |
+             | all zeros randomly. Hence regenerate a vector and let |
+             | the rest figure things out for zero eigenvalues.      |
+             *------------------------------------------------------*/
+            generate_random_vector_d(&V->n, resid);
+            V->aup2_rnorm = dnrm2_(&V->n, resid, &int1);
+            dscal_(&V->n, &V->aup2_rnorm, resid, &int1);
+        }
+        V->aup2_getv0 = 0;
+        V->ido = 0;
+    }
+
+     /*----------------------------------*
+     | Back from reverse communication : |
+     | continue with update step         |
+     *----------------------------------*/
+
+    if (V->aup2_update) { goto LINE20; }
+
+     /*------------------------------------------*
+     | Back from computing user specified shifts |
+     *------------------------------------------*/
+
+    if (V->aup2_ushift) { goto LINE50; }
+
+     /*------------------------------------------------------------------*
+     | Back from computing residual norm at the end of current iteration |
+     *------------------------------------------------------------------*/
+
+    if (V->aup2_cnorm) { goto LINE100; }
+
+     /*---------------------------------------------------------*
+     | Compute the first NEV steps of the Lanczos factorization |
+     *---------------------------------------------------------*/
+
+    dsaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
+
+     /*------------------------------------------------*
+     | ido = 99 implies use of reverse communication;  |
+     | no shifts may be applied at this stage.         |
+     *------------------------------------------------*/
+
+    if (V->ido != ido_DONE) { return; }
+
+    if (V->info > 0)
+    {
+        V->np = V->info;
+        V->maxiter = V->aup2_iter;
+        V->info = -9999;
+        V->ido = ido_DONE;
+        return;
+    }
+
+     /*-------------------------------------------------------------*
+     |                                                              |
+     |           M A I N  LANCZOS  I T E R A T I O N  L O O P       |
+     |           Each iteration implicitly restarts the Lanczos     |
+     |           factorization in place.                            |
+     |                                                              |
+     *-------------------------------------------------------------*/
+
+LINE1000:
+
+    V->aup2_iter += 1;
+
+     /*----------------------------------------------------------*
+     | Compute NP additional steps of the Lanczos factorization. |
+     *----------------------------------------------------------*/
+
+    V->ido = ido_FIRST;
+
+LINE20:
+    V->aup2_update = 1;
+
+    dsaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
+
+     /*--------------------------------------------------*
+     | ido .ne. 99 implies use of reverse communication  |
+     | to compute operations involving OP and possibly B |
+     *--------------------------------------------------*/
+
+    if (V->ido != ido_DONE) { return; }
+
+    if (V->info > 0)
+    {
+        V->np = V->info;
+        V->maxiter = V->aup2_iter;
+        V->info = -9999;
+        V->ido = ido_DONE;
+        return;
+    }
+
+    V->aup2_update = 0;
+
+     /*-------------------------------------------------------*
+     | Compute the eigenvalues and corresponding error bounds |
+     | of the current symmetric tridiagonal matrix.           |
+     *-------------------------------------------------------*/
+
+    dseigt(V->aup2_rnorm, V->nev, h, ldh, ritz, bounds, workl, &ierr);
+
+    if (ierr != 0)
+    {
+        V->info = -8;
+        V->ido = ido_DONE;
+        return;
+    }
+
+     /*---------------------------------------------------*
+     | Make a copy of eigenvalues and corresponding error |
+     | bounds obtained from _seigt.                       |
+     *---------------------------------------------------*/
+
+    dcopy_(&V->aup2_kplusp, ritz, &int1, &workl[V->aup2_kplusp], &int1);
+    dcopy_(&V->aup2_kplusp, bounds, &int1, &workl[2*V->aup2_kplusp], &int1);
+
+     /*--------------------------------------------------*
+     | Select the wanted Ritz values and their bounds    |
+     | to be used in the convergence test.               |
+     | The selection is based on the requested number of |
+     | eigenvalues instead of the current NEV and NP to  |
+     | prevent possible misconvergence.                  |
+     | * Wanted Ritz values := RITZ(NP+1:NEV+NP)         |
+     | * Shifts := RITZ(1:NP) := WORKL(1:NP)             |
+     *--------------------------------------------------*/
+
+    V->nev = V->aup2_nev0;
+    V->np = V->aup2_np0;
+
+    dsgets(V, &V->nev, &V->np, ritz, bounds, workl);
+
+     /*------------------*
+     | Convergence test |
+     *------------------*/
+    dcopy_(&V->nev, &bounds[V->np], &int1, &workl[V->np], &int1);
+    dsconv(V->nev, &ritz[V->np], &workl[V->np], V->tol, &V->nconv);
+
+     /*--------------------------------------------------------*
+     | Count the number of unwanted Ritz values that have zero |
+     | Ritz estimates. If any Ritz estimates are equal to zero |
+     | then a leading block of H of order equal to at least    |
+     | the number of Ritz values with zero Ritz estimates has  |
+     | split off. None of these Ritz values may be removed by  |
+     | shifting. Decrease NP the number of shifts to apply. If |
+     | no shifts may be applied, then prepare to exit          |
+     *--------------------------------------------------------*/
+
+    tmp_int = V->np;
+    for (j = 0; j < tmp_int; j++)
+    {
+        if (bounds[j] == 0.0) {
+            V->np -= 1;
+            V->nev += 1;
+        }
+    }
+    // 30
+
+    if ((V->nconv >= V->aup2_nev0) || (V->aup2_iter > V->maxiter) || (V->np == 0))
+    {
+         /*-----------------------------------------------*
+         | Prepare to exit. Put the converged Ritz values |
+         | and corresponding bounds in RITZ(1:NCONV) and  |
+         | BOUNDS(1:NCONV) respectively. Then sort. Be    |
+         | careful when NCONV > NP since we don't want to |
+         | swap overlapping locations.                    |
+         *-----------------------------------------------*/
+
+        if (V->which == which_BE)
+        {
+             /*----------------------------------------------------*
+             | Both ends of the spectrum are requested.            |
+             | Sort the eigenvalues into algebraically decreasing  |
+             | order first then swap low end of the spectrum next  |
+             | to high end in appropriate locations.               |
+             | NOTE: when np < floor(nev/2) be careful not to swap |
+             | overlapping locations.                              |
+             *----------------------------------------------------*/
+
+            dsortr(sortr_SA, 1, V->aup2_kplusp, ritz, bounds);
+            nevd2 = nev0 / 2;
+            nevm2 = nev0 - nevd2;
+            if (V->nev > 1)
+            {
+                V->np = V->aup2_kplusp - nev0;
+                tmp_int = (nevd2 < V->np ? nevd2 : V->np);
+                tmp_int2 = V->aup2_kplusp - (nevd2 < V->np ? nevd2 : V->np);
+                dswap_(&tmp_int, &ritz[nevm2], &int1, &ritz[tmp_int2], &int1);
+                dswap_(&tmp_int, &bounds[nevm2], &int1, &bounds[tmp_int2], &int1);
+            }
+
+        } else {
+
+             /*-------------------------------------------------*
+             | LM, SM, LA, SA case.                             |
+             | Sort the eigenvalues of H into the an order that |
+             | is opposite to WHICH, and apply the resulting    |
+             | order to BOUNDS.  The eigenvalues are sorted so  |
+             | that the wanted part are always within the first |
+             | NEV locations.                                   |
+             *-------------------------------------------------*/
+
+            if (V->which == which_LM)
+            {
+                temp_which = which_SM;
+            } else if (V->which == which_SM)
+            {
+                temp_which = which_LM;
+            } else if (V->which == which_LA)
+            {
+                temp_which = which_SA;
+            } else if (V->which == which_SA)
+            {
+                temp_which = which_LA;
+            }
+
+            dsortr(temp_which, 1, V->aup2_kplusp, ritz, bounds);
+        }
+
+         /*------------------------------------------------------*
+         | Scale the Ritz estimate of each Ritz value            |
+         | by 1 / max(eps23,magnitude of the Ritz value).        |
+         *------------------------------------------------------*/
+
+        for (j = 0; j < V->aup2_nev0; j++)
+        {
+            temp = fmax(eps23, fabs(ritz[j]));
+            bounds[j] = bounds[j] / temp;
+        }
+        // 35
+
+         /*---------------------------------------------------*
+         | Sort the Ritz values according to the scaled Ritz  |
+         | estimates.  This will push all the converged ones  |
+         | towards the front of ritzr, ritzi, bounds          |
+         | (in the case when NCONV < NEV.)                    |
+         *---------------------------------------------------*/
+
+        dsortr(which_LA, 1, V->aup2_nev0, bounds, ritz);
+
+         /*---------------------------------------------*
+         | Scale the Ritz estimate back to its original |
+         | value.                                       |
+         *---------------------------------------------*/
+
+        for (j = 0; j < V->aup2_nev0; j++)
+        {
+            temp = fmax(eps23, fabs(ritz[j]));
+            bounds[j] = bounds[j] * temp;
+        }
+        // 40
+
+         /*-------------------------------------------------*
+         | Sort the "converged" Ritz values again so that   |
+         | the "threshold" values and their associated Ritz |
+         | estimates appear at the appropriate position in  |
+         | ritz and bound.                                  |
+         *-------------------------------------------------*/
+
+        if (V->which == which_BE)
+        {
+             /*-----------------------------------------------*
+             | Sort the "converged" Ritz values in increasing |
+             | order.  The "threshold" values are in the      |
+             | middle.                                        |
+             *-----------------------------------------------*/
+            dsortr(sortr_LA, 1, V->nconv, ritz, bounds);
+        } else {
+
+             /*---------------------------------------------*
+             | In LM, SM, LA, SA case, sort the "converged" |
+             | Ritz values according to WHICH so that the   |
+             | "threshold" value appears at the front of    |
+             | ritz.                                        |
+             *---------------------------------------------*/
+            dsortr(V->which, 1, V->nconv, ritz, bounds);
+        }
+
+         /*-----------------------------------------*
+         |  Use h( 1,1 ) as storage to communicate  |
+         |  rnorm to _seupd if needed               |
+         *-----------------------------------------*/
+
+        h[0] = V->aup2_rnorm;
+
+         /*-----------------------------------*
+         | Max iterations have been exceeded. |
+         *-----------------------------------*/
+
+        if ((V->aup2_iter > V->maxiter) && (V->nconv < V->nev))
+        {
+            V->info = 1;
+        }
+
+         /*--------------------*
+         | No shifts to apply. |
+         *--------------------*/
+
+        if ((V->np ==  0) && (V->nconv < V->nev))
+        {
+            V->info = 2;
+        }
+
+        V->np = V->nconv;
+        V->nev = V->nconv;
+        V->maxiter = V->aup2_iter;
+        return;
+    } else if ((V->nconv < V->nev) && (V->ishift == 1)) {
+
+         /*--------------------------------------------------*
+         | Do not have all the requested eigenvalues yet.    |
+         | To prevent possible stagnation, adjust the number |
+         | of Ritz values and the shifts.                    |
+         *--------------------------------------------------*/
+
+        nevbef = V->nev;
+        V->nev += (V->nconv > (V->np / 2) ? (V->np / 2) : V->nconv);
+        if ((V->nev == 1) && (V->aup2_kplusp >= 6))
+        {
+            V->nev = V->aup2_kplusp / 2;
+        } else if ((V->nev == 1) && (V->aup2_kplusp > 3))
+        {
+            V->nev = 2;
+        }
+
+        if (nevbef < V->nev)
+        {
+            dsgets(V, &V->nev, &V->np, ritz, bounds, workl);
+        }
+    }
+
+    if (V->ishift == 0)
+    {
+         /*----------------------------------------------------*
+         | User specified shifts: reverse communication to     |
+         | compute the shifts. They are returned in the first  |
+         | NP locations of WORKL.                              |
+         *----------------------------------------------------*/
+        V->aup2_ushift = 1;
+        V->ido = ido_BX;
+        return;
+    }
+
+LINE50:
+
+     /*-----------------------------------*
+     | Back from reverse communication;   |
+     | User specified shifts are returned |
+     | in WORKL(1:*NP)                    |
+     *-----------------------------------*/
+    V->aup2_ushift = 0;
+
+     /*--------------------------------------------------------*
+     | Move the NP shifts to the first NP locations of RITZ to |
+     | free up WORKL.  This is for the non-exact shift case;   |
+     | in the exact shift case, dsgets already handles this.   |
+     *--------------------------------------------------------*/
+
+    if (V->ishift == 0) { dcopy_(&V->np, workl, &int1, ritz, &int1); }
+
+     /*--------------------------------------------------------*
+     | Apply the NP0 implicit shifts by QR bulge chasing.      |
+     | Each shift is applied to the entire tridiagonal matrix. |
+     | The first 2*N locations of WORKD are used as workspace. |
+     | After dsapps is done, we have a Lanczos                 |
+     | factorization of length NEV.                            |
+     *--------------------------------------------------------*/
+
+    dsapps(V, V->np, V->nev, V->np, ritz, v, ldv, h, ldh, q, ldq, workd);
+
+     /*--------------------------------------------*
+     | Compute the B-norm of the updated residual. |
+     | Keep B*RESID in WORKD(1:N) to be used in    |
+     | the first step of the next call to dsaitr.  |
+     *--------------------------------------------*/
+
+    V->aup2_cnorm = 1;
+
+    if (V->bmat)
+    {
+        dcopy_(&V->n, resid, &int1, &workd[V->n], &int1);
+        ipntr[0] = V->n;
+        ipntr[1] = 0;
+        V->ido = ido_BX;
+        return;
+    } else {
+        dcopy_(&V->n, resid, &int1, workd, &int1);
+    }
+
+LINE100:
+
+     /*---------------------------------*
+     | Back from reverse communication; |
+     | WORKD(1:N) := B*RESID            |
+     *---------------------------------*/
+    V->aup2_cnorm = 1;
+
+    if (V->bmat)
+    {
+        temp = ddot_(&V->n, resid, &int1, workd, &int1);
+        temp = sqrt(fabs(temp));
+    } else {
+        temp = dnrm2_(&V->n, resid, &int1);
+    }
+    V->aup2_rnorm = temp;
+
+    V->aup2_cnorm = 0;
+
+    goto LINE1000;
+
+}
+
+
+int
+dsconv(int n, double *ritz, double *bounds, double tol) {
+    // Local variables
+    int i, nconv = 0;
+    const double eps23 = pow(ulp, 2.0 / 3.0);
+
+    // Convergence test
+    for (i = 0; i < n; i++)
+    {
+        if (fabs(bounds[i]) <= tol * fmax(eps23, fabs(ritz[i])))
+        {
+            nconv += 1;
+        }
+    }
+
+    return nconv;
+}
+
+void
+dseigt(double rnorm, int n, double* h, int ldh, double* eig, double* bounds,
+       double* workl, int* ierr)
+{
+    // Parameters
+    const double zero = 0.0;
+    // Local variables
+    int k, int1 = 1, tmp_int;
+    dcopy_(n, &h[ldh], &int1, eig, &int1);
+    tmp_int = n - 1;
+    dcopy_(&tmp_int, &h[1], &int1, workl, &int1);
+    dstqrb(n, eig, workl, bounds, &workl[n], ierr);
+    if (*ierr != 0) return;
+    for (k = 0; k < n; k++) { bounds[k] = rnorm * fabs(bounds[k]); }
+    return;
+}
+
+
 
 void
 dsaitr(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* rnorm,
