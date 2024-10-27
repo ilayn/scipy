@@ -560,7 +560,7 @@ dnaupd(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
 
     // perform basic checks
     if (V->n <= 0) {
-        ierr = 1;
+        ierr = -1;
     } else if (V->nev <= 0) {
         ierr = -2;
     } else if ((V->ncv < V->nev + 1) || (V->ncv > V->n)) {
@@ -581,7 +581,7 @@ dnaupd(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
 
     if (ierr != 0) {
         V->info = ierr;
-        V->ido = 99;
+        V->ido = ido_DONE;
         return;
     }
 
@@ -642,7 +642,7 @@ dnaupd(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
      *-------------------------------------------------*/
 
     // if (V->ido == 3)
-    if (V->ido != 99) { return; }
+    if (V->ido != ido_DONE) { return; }
 
     V->nconv = V->np;
     // iparam(9) = nopx
@@ -666,7 +666,7 @@ dnaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp = 0.0;
 
-    if (V->ido == 0)
+    if (V->ido == ido_FIRST)
     {
         V->aup2_nev0 = V->nev;
         V->aup2_np0 = V->np;
@@ -712,7 +712,7 @@ dnaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
     if (V->aup2_getv0)
     {
         dgetv0(V, V->aup2_initv, V->n, 0, v, ldv, resid, &V->aup2_rnorm, ipntr, workd);
-        if (V->ido != 99) { return; }
+        if (V->ido != ido_DONE) { return; }
         if (V->aup2_rnorm == 0.0)
         {
              /*------------------------------------------------------*
@@ -725,7 +725,7 @@ dnaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
             dscal_(&V->n, &V->aup2_rnorm, resid, &int1);
         }
         V->aup2_getv0 = 0;
-        V->ido = 0;
+        V->ido = ido_FIRST;
     }
 
      /*----------------------------------*
@@ -755,14 +755,14 @@ dnaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
      | ido .ne. 99 implies use of reverse communication  |
      | to compute operations involving OP and possibly B |
      *--------------------------------------------------*/
-    if (V->ido != 99) { return; }
+    if (V->ido != ido_DONE) { return; }
 
     if (V->info > 0)
     {
         V->np = V->info;
         V->maxiter = V->aup2_iter;
         V->info = -9999;
-        V->ido = 99;
+        V->ido = ido_DONE;
         return;
     }
 
@@ -783,7 +783,7 @@ LINE1000:
      | to the shift application routine dnapps .                 |
      *----------------------------------------------------------*/
     V->np = V->aup2_kplusp - V->nev;
-    V->ido = 0;
+    V->ido = ido_FIRST;
 
 LINE20:
     V->aup2_update = 1;
@@ -795,13 +795,13 @@ LINE20:
      | to compute operations involving OP and possibly B |
      *--------------------------------------------------*/
 
-    if (V->ido != 99) { return; }
+    if (V->ido != ido_DONE) { return; }
 
     if (V->info > 0) {
         V->np = V->info;
         V->maxiter = V->aup2_iter;
         V->info = -9999;
-        V->ido = 99;
+        V->ido = ido_DONE;
         return;
     }
     V->aup2_update = 0;
@@ -817,7 +817,7 @@ LINE20:
     if (V->info != 0)
     {
        V->info = -8;
-       V->ido = 99;
+       V->ido = ido_DONE;
        return;
     }
 
@@ -989,7 +989,7 @@ LINE20:
         V->np = V->nconv;
         V->maxiter = V->aup2_iter;
         V->nev = V->aup2_numcnv;
-        V->ido = 99;
+        V->ido = ido_DONE;
         return;
 
     } else if ((V->nconv < V->aup2_numcnv) && (V->ishift)) {
@@ -1036,7 +1036,7 @@ LINE20:
          | 2*NP locations of WORKL.                              |
          *------------------------------------------------------*/
         V->aup2_ushift = 1;
-        V->ido = 3;
+        V->ido = ido_USER_SHIFT;
         return;
     }
 
@@ -1081,7 +1081,7 @@ LINE50:
         dcopy_(&V->n, resid, &int1, &workd[V->n], &int1);
         ipntr[0] = V->n;
         ipntr[1] = 0;
-        V->ido = 2;
+        V->ido = ido_BX;
          /*---------------------------------*
          | Exit in order to compute B*RESID |
          *---------------------------------*/
@@ -1270,7 +1270,7 @@ dnaitr(struct ARPACK_arnoldi_update_vars_d *V,  double* resid, double* rnorm,
     irj = ipj + n;
     ivj = irj + n;
 
-    if (V->ido == 0)
+    if (V->ido == ido_FIRST)
     {
          /*-----------------------------*
          | Initial call to this routine |
@@ -1334,11 +1334,11 @@ LINE1000:
 
 LINE20:
     V->aitr_restart = 1;
-    V->ido = 0;
+    V->ido = ido_FIRST;
 
 LINE30:
     dgetv0(V, 0, n, V->aitr_j, v, ldv, resid, rnorm, ipntr, workd, &V->aitr_ierr);
-    if (V->ido != 99) { return; }
+    if (V->ido != ido_DONE) { return; }
 
     if (V->aitr_ierr < 0)
     {
@@ -1350,7 +1350,7 @@ LINE30:
          | which spans OP and exit.                       |
          *-----------------------------------------------*/
         V->info = V->aitr_j;
-        V->ido = 99;
+        V->ido = ido_DONE;
         return;
     }
 
@@ -1382,7 +1382,7 @@ LINE40:
     ipntr[0] = ivj;
     ipntr[1] = irj;
     ipntr[2] = ipj;
-    V->ido = 1;
+    V->ido = ido_OPX;
 
      /*----------------------------------*
      | Exit in order to compute OP*v_{j} |
@@ -1411,7 +1411,7 @@ LINE50:
         V->aitr_step4 = 1;
         ipntr[0] = irj;
         ipntr[1] = ipj;
-        V->ido = 2;
+        V->ido = ido_BX;
          /*------------------------------------*
          | Exit in order to compute B*OP*v_{j} |
          *------------------------------------*/
@@ -1470,7 +1470,7 @@ LINE60:
         dcopy_(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
-        V->ido = 2;
+        V->ido = ido_BX;
          /*---------------------------------*
          | Exit in order to compute B*r_{j} |
          *---------------------------------*/
@@ -1552,7 +1552,7 @@ LINE80:
         dcopy_(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
-        V->ido = 2;
+        V->ido = ido_BX;
          /*----------------------------------*
          | Exit in order to compute B*r_{j}. |
          | r_{j} is the corrected residual.  |
@@ -1625,7 +1625,7 @@ LINE100:
     V->aitr_j += 1;
     if (V->aitr_j >= V->nev + V->np)
     {
-        V->ido = 99;
+        V->ido = ido_DONE;
         int k = (V->nev > 1 ? V->nev : 1);
         for (i = k - 1; i < k - 2 + V->np; i++)
         {
@@ -2118,7 +2118,7 @@ dgetv0(struct ARPACK_arnoldi_update_vars_d *V, const int initv, const int n, con
     char *TRANS = "T";
     const double sq2o2 = sqrt(2.0) / 2.0;
 
-    if (V->ido == 0)
+    if (V->ido == ido_FIRST)
     {
         V->info = 0;
         V->getv0_iter = 0;
@@ -2177,7 +2177,7 @@ dgetv0(struct ARPACK_arnoldi_update_vars_d *V, const int initv, const int n, con
     {
         ipntr[0] = n;
         ipntr[1] = 0;
-        V->ido = 2;
+        V->ido = ido_BX;
         return;
     }
 
@@ -2199,7 +2199,7 @@ LINE20:
 
     if (j == 0)
     {
-        V->ido = 99;
+        V->ido = ido_DONE;
         return;
     }
 
@@ -2231,7 +2231,7 @@ LINE30:
         dcopy_(&n, resid, &int1, &workd[n], &int1);
         ipntr[0] = n;
         ipntr[1] = 0;
-        V->ido = 2;
+        V->ido = ido_BX;
         return;
     } else {
         dcopy_(&n, resid, &int1, workd, &int1);
@@ -2252,7 +2252,7 @@ LINE40:
 
     if (*rnorm > sq2o2*V->getv0_rnorm0)
     {
-        V->ido = 99;
+        V->ido = ido_DONE;
         return;
     }
 
@@ -2274,7 +2274,7 @@ LINE40:
         V->info = -1;
     }
 
-    V->ido = 99;
+    V->ido = ido_DONE;
 
     return;
 }
