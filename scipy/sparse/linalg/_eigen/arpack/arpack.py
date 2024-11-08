@@ -45,7 +45,7 @@ from scipy.sparse._sputils import (
 )
 from scipy.sparse.linalg import gmres, splu
 from scipy._lib._util import _aligned_zeros
-from scipy._lib._threadsafety import ReentrancyLock
+
 
 from . import _arpack
 arpack_int = _arpack.timing.nbx.dtype
@@ -729,7 +729,7 @@ class _UnsymmetricArpackParams(_ArpackParams):
                                           self.ipntr, self.workd, self.workl, self.info)
             self.ido, self.tol, self.resid, self.v, \
                 self.iparam, self.ipntr, self.info = results
-                
+
         else:
             results = self._arpack_solver(self.ido, self.bmat, self.which, self.k,
                                           self.tol, self.resid, self.v, self.iparam,
@@ -737,7 +737,7 @@ class _UnsymmetricArpackParams(_ArpackParams):
                                           self.rwork, self.info)
             self.ido, self.tol, self.resid, self.v, \
                 self.iparam, self.ipntr, self.info = results
-                
+
 
         xslice = slice(self.ipntr[0] - 1, self.ipntr[0] - 1 + self.n)
         yslice = slice(self.ipntr[1] - 1, self.ipntr[1] - 1 + self.n)
@@ -1091,12 +1091,6 @@ def get_OPinv_matvec(A, M, sigma, hermitian=False, tol=0):
             return SpLuInv(OP).matvec
 
 
-# ARPACK is not threadsafe or reentrant (SAVE variables), so we need a
-# lock and a re-entering check.
-_ARPACK_LOCK = ReentrancyLock("Nested calls to eigs/eighs not allowed: "
-                              "ARPACK is not re-entrant")
-
-
 def eigs(A, k=6, M=None, sigma=None, which='LM', v0=None,
          ncv=None, maxiter=None, tol=0, return_eigenvectors=True,
          Minv=None, OPinv=None, OPpart=None):
@@ -1331,7 +1325,8 @@ def eigs(A, k=6, M=None, sigma=None, which='LM', v0=None,
 
         matvec = aslinearoperator(A).matvec
         if Minv is not None:
-            raise ValueError("Minv should not be specified when sigma is")
+            raise ValueError("Minv should not be specified when sigma is"
+                             "specified.")
         if OPinv is None:
             Minv_matvec = get_OPinv_matvec(A, M, sigma,
                                            hermitian=False, tol=tol)
@@ -1347,11 +1342,10 @@ def eigs(A, k=6, M=None, sigma=None, which='LM', v0=None,
                                       M_matvec, Minv_matvec, sigma,
                                       ncv, v0, maxiter, which, tol)
 
-    with _ARPACK_LOCK:
-        while not params.converged:
-            params.iterate()
+    while not params.converged:
+        params.iterate()
 
-        return params.extract(return_eigenvectors)
+    return params.extract(return_eigenvectors)
 
 
 def eigsh(A, k=6, M=None, sigma=None, which='LM', v0=None,
@@ -1369,8 +1363,8 @@ def eigsh(A, k=6, M=None, sigma=None, which='LM', v0=None,
     with corresponding eigenvectors x[i].
 
     Note that there is no specialized routine for the case when A is a complex
-    Hermitian matrix. In this case, ``eigsh()`` will call ``eigs()`` and return the
-    real parts of the eigenvalues thus obtained.
+    Hermitian matrix. In this case, ``eigsh()`` will call ``eigs()`` and return
+    the real parts of the eigenvalues thus obtained.
 
     Parameters
     ----------
@@ -1618,16 +1612,14 @@ def eigsh(A, k=6, M=None, sigma=None, which='LM', v0=None,
         matvec = A.matvec
 
         if OPinv is not None:
-            raise ValueError("OPinv should not be specified "
-                             "with sigma = None.")
+            raise ValueError("OPinv should not be specified with sigma = None.")
         if M is None:
             #standard eigenvalue problem
             mode = 1
             M_matvec = None
             Minv_matvec = None
             if Minv is not None:
-                raise ValueError("Minv should not be "
-                                 "specified with M = None.")
+                raise ValueError("Minv should not be specified with M = None.")
         else:
             #general eigenvalue problem
             mode = 2
@@ -1640,7 +1632,8 @@ def eigsh(A, k=6, M=None, sigma=None, which='LM', v0=None,
     else:
         # sigma is not None: shift-invert mode
         if Minv is not None:
-            raise ValueError("Minv should not be specified when sigma is")
+            raise ValueError("Minv should not be specified when sigma is "
+                             "specified.")
 
         # normal mode
         if mode == 'normal':
@@ -1691,8 +1684,7 @@ def eigsh(A, k=6, M=None, sigma=None, which='LM', v0=None,
                                     M_matvec, Minv_matvec, sigma,
                                     ncv, v0, maxiter, which, tol)
 
-    with _ARPACK_LOCK:
-        while not params.converged:
-            params.iterate()
+    while not params.converged:
+        params.iterate()
 
-        return params.extract(return_eigenvectors)
+    return params.extract(return_eigenvectors)
