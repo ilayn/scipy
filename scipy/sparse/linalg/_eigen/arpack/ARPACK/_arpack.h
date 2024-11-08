@@ -11,6 +11,25 @@ extern "C"
 #include "numpy/arrayobject.h"
 #include <math.h>
 
+#if defined(_MSC_VER)
+    // MSVC definitions
+    #include <complex.h>  // MSVC C++ header
+    typedef _Dcomplex ARPACK_CPLX_TYPE;
+    typedef _Fcomplex ARPACK_CPLXF_TYPE;
+    #define ARPACK_cplx(real, imag) ((_Dcomplex){real, imag})
+    #define ARPACK_cplxf(real, imag) ((_Fcomplex){real, imag})
+
+#else
+    // C99 compliant compilers
+    #include <complex.h>
+    typedef double complex ARPACK_CPLX_TYPE;
+    typedef float complex ARPACK_CPLXF_TYPE;
+    #define ARPACK_cplx(real, imag) ((real) + (imag)*I)
+    #define ARPACK_cplxf(real, imag) ((real) + (imag)*I)
+
+#endif
+
+
 
 /*
  * ARPACK uses the so-called reverse-communication style that typically exits
@@ -29,7 +48,6 @@ extern "C"
  * To generate random vectors that are used in ARPACK algorithm, we also expect
  * a NumPy generator object from the user for reproducible runs. However this
  * can be replaced with a different number generation routine.
- *
 */
 
 enum ARPACK_which {
@@ -155,11 +173,14 @@ struct ARPACK_arnoldi_update_vars_d {
 };
 
 
+void snaupd(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv, int* ipntr, float* workd, float* workl);
+void dnaupd(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv, int* ipntr, double* workd, double* workl);
+
 /*
  * The following function is extracted out from classical ARPACK code in order
  * to replace the random number generation with NumPy Random C-API and more
  * importantly to be able to control the seed which is not possible with the
- * classical Fortran code. It can replaced with some other random generator
+ * classical Fortran code. It can be replaced with some other random generator
  * implementation following the prototype below.
 */
 void generate_random_vector_s(const int n, double* vec);
