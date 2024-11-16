@@ -32,7 +32,7 @@ _arpack = py3.extension_module('_arpack',
   arpack_module,
   link_with: arpack_lib,
   include_directories: ['../../../../_lib/src'],
-  dependencies: [np_dep, lapack_dep, blas_dep],
+  dependencies: [py3_dep, m_dep, np_dep, lapack_dep, blas_dep],
   link_args: version_link_args,
   install: true
 )
