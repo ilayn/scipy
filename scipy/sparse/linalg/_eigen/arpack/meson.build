@@ -17,7 +17,7 @@ arpack_sources = [
 arpack_lib = static_library('_arpack_lib',
   arpack_sources,
   include_directories: ['../../../../_lib/src'],
-  dependencies: [np_dep, lapack_dep, blas_dep],
+  dependencies: [py3_dep, m_dep, np_dep, lapack_dep, blas_dep],
   link_args: version_link_args,
   install: true
 )
