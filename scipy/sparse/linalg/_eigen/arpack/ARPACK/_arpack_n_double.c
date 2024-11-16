@@ -11,8 +11,14 @@ static int sortc_LI(const double, const double, const double, const double);
 static int sortc_SI(const double, const double, const double, const double);
 
 static const double unfl = 2.2250738585072014e-308;
-static const double ovfl = 1.0 / 2.2250738585072014e-308;
+// static const double ovfl = 1.0 / 2.2250738585072014e-308;
 static const double ulp = 2.220446049250313e-16;
+
+static void dneigh(double*,int,double*,int,double*,double*,double*,double*,int,double*,int*);
+static void dnaitr(struct ARPACK_arnoldi_update_vars_d*,double*,double*,double*,int,double*,int,int*,double*);
+static void dnapps(int,int*,int,double*,double*,double*,int,double*,int,double*,double*,int,double*,double*);
+static void dngets(struct ARPACK_arnoldi_update_vars_d*,int*,int*,double*,double*,double*);
+
 
 enum ARPACK_neupd_type {
     REGULAR,
@@ -244,7 +250,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
          | converged Ritz values.                |
          *--------------------------------------*/
 
-        dcopy_(V->ncv, &workl[invsub + V->ncv - 1], &ldq, &workl[ihbds], &int1);
+        dcopy_(&V->ncv, &workl[invsub + V->ncv - 1], &ldq, &workl[ihbds], &int1);
 
          /*---------------------------------------------------*
          | Place the computed eigenvalues of H into DR and DI |
@@ -252,8 +258,8 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
          *---------------------------------------------------*/
 
         if (TYP == REGULAR) {
-            dcopy_(V->nconv, &workl[iheigr], &int1, dr, &int1);
-            dcopy_(V->nconv, &workl[iheigi], &int1, di, &int1);
+            dcopy_(&V->nconv, &workl[iheigr], &int1, dr, &int1);
+            dcopy_(&V->nconv, &workl[iheigi], &int1, di, &int1);
         }
 
          /*---------------------------------------------------------*
@@ -294,8 +300,8 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
         {
             if (workl[invsub + j*ldq + j] < 0.0)
             {
-                dscal_(V->nconv, &dblm1, &workl[iuptri + j], &ldq);
-                dscal_(V->nconv, &dblm1, &workl[iuptri + j*ldq], &int1);
+                dscal_(&V->nconv, &dblm1, &workl[iuptri + j], &ldq);
+                dscal_(&V->nconv, &dblm1, &workl[iuptri + j*ldq], &int1);
             }
         }
         // 20
@@ -404,7 +410,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
              | columns of workl(invsub,ldq).                           |
              *--------------------------------------------------------*/
 
-            dgeqr2_(&V->ncv, V->nconv, &workl[invsub], &ldq, workev, &workev[V->ncv], &ierr);
+            dgeqr2_(&V->ncv, &V->nconv, &workl[invsub], &ldq, workev, &workev[V->ncv], &ierr);
 
              /*---------------------------------------------*
              | * Postmultiply Z by Q.                       |
@@ -417,7 +423,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
             dorm2r_("R", "N", &V->n, &V->ncv, &V->nconv, &workl[invsub], &ldq,
                     workev, z, &ldz, &workd[V->n], &ierr);
 
-            dtrmm_("R", "U", "N", "N", &V->n, V->nconv, &dbl1, &workl[invsub], &ldq, z, &ldz);
+            dtrmm_("R", "U", "N", "N", &V->n, &V->nconv, &dbl1, &workl[invsub], &ldq, z, &ldz);
 
         }
 
@@ -488,12 +494,12 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
             }
             // 80
 
-            dcopy_(V->nconv, &workl[iheigr], &int1, dr, &int1);
-            dcopy_(V->nconv, &workl[iheigi], &int1, di, &int1);
+            dcopy_(&V->nconv, &workl[iheigr], &int1, dr, &int1);
+            dcopy_(&V->nconv, &workl[iheigi], &int1, di, &int1);
 
         } else if ((TYP == REALPART) || (TYP == IMAGPART)) {
-            dcopy_(V->nconv, &workl[iheigr], &int1, dr, &int1);
-            dcopy_(V->nconv, &workl[iheigi], &int1, di, &int1);
+            dcopy_(&V->nconv, &workl[iheigr], &int1, dr, &int1);
+            dcopy_(&V->nconv, &workl[iheigi], &int1, di, &int1);
         }
     }
 
@@ -545,7 +551,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
          | Perform a rank one update to Z and    |
          | purify all the Ritz vectors together. |
          *--------------------------------------*/
-        dger_(V->n, V->nconv, &dbl1, resid, &int1, workev, &int1, z, &ldz);
+        dger_(&V->n, &V->nconv, &dbl1, resid, &int1, workev, &int1, z, &ldz);
     }
 
     return;
@@ -1141,7 +1147,7 @@ dneigh(double* rnorm, int n, double* h, int ldh, double* ritzr, double* ritzi,
        double* bounds, double* q, int ldq, double* workl, int* ierr)
 {
     int select[1] = { 0 };
-    int i, iconj, int0 = 0, int1 = 1, j;
+    int i, iconj, int1 = 1, j;
     double dbl1 = 1.0, dbl0 = 0.0, temp, tmp_dbl, vl[1] = { 0.0 };
     char *UPLO = "A", *SIDE = "R", *HOWMNY = "A", *TRANS = "T";
 
@@ -1154,7 +1160,7 @@ dneigh(double* rnorm, int n, double* h, int ldh, double* ritzr, double* ritzi,
      | and the last components of the Schur vectors in BOUNDS.   |
      *----------------------------------------------------------*/
 
-    dlacpy_(UPLO, &n, &n, h, &ldh, &workl, &n);
+    dlacpy_(UPLO, &n, &n, h, &ldh, workl, &n);
     for (j = 0; j < n-1; j++)
     {
         bounds[j] = 0.0;
@@ -1258,11 +1264,11 @@ dnaitr(struct ARPACK_arnoldi_update_vars_d *V,  double* resid, double* rnorm,
 {
     int i, infol, iter, ipj, irj, ivj, jj, n, tmp_int;
     double smlnum = unfl * ( V->n / ulp);
-    double xtemp[2] = { 0.0 };
+    // double xtemp[2] = { 0.0 };
     const double sq2o2 = sqrt(2.0) / 2.0;
 
     char *MTYPE = "G", *TRANS = "T", *NORM = "1";
-    int int1 = 1, int0 = 0;
+    int int1 = 1;
     double dbl1 = 1.0, dbl0 = 0.0, temp1, tmp_dbl, tst1;
 
     n = V->n;  // n is constant, this is just for typing convenience
@@ -1756,7 +1762,7 @@ LINE20:
             {
                 // dlanhs(norm, n, a, lda, work)
                 tmp_int = kplusp - jj + 1;
-                dlanhs(NORM, &tmp_int, h, &ldh, workl);
+                dlanhs_(NORM, &tmp_int, h, &ldh, workl);
             }
             if (fabs(h[i+1 + ldh*i]) <= fmax(ulp*tst1, smlnum))
             {
@@ -1767,7 +1773,7 @@ LINE20:
         }
         // 30
         // Adjust iend if no break
-        if (i == kplusp - 1) { iend == kplusp - 1; }
+        if (i == kplusp - 1) { iend = kplusp - 1; }
         // 40
 
          /*-----------------------------------------------*
@@ -2003,7 +2009,7 @@ LINE20:
      | Compute column 1 to kev of (V*Q) in backward order       |
      | taking advantage of the upper Hessenberg structure of Q. |
      *---------------------------------------------------------*/
-    for (i = 0; i < kev; i++)
+    for (i = 0; i < *kev; i++)
     {
         tmp_int = kplusp - i;
         dgemv_(TRANS, &n, &tmp_int, &dbl1, v, &ldv, &q[(*kev-i)*ldq], &int1, &dbl0, workd, &int1);
@@ -2013,7 +2019,7 @@ LINE20:
      /*------------------------------------------------*
      |  Move v(:,kplusp-kev+1:kplusp) into v(:,1:kev). |
      *------------------------------------------------*/
-    for (i = 0; i < kev; i++)
+    for (i = 0; i < *kev; i++)
     {
         dcopy_(&n, &v[(kplusp-*kev+i)*ldv], &int1, &v[i*ldv], &int1);
     }
@@ -2077,6 +2083,9 @@ dngets(struct ARPACK_arnoldi_update_vars_d *V, int* kev, int* np,
         case which_SI:
             dsortc(which_SM, 1, *kev + *np, ritzr, ritzi, bounds);
             break;
+        default:
+            dsortc(which_LR, 1, *kev + *np, ritzr, ritzi, bounds);
+            break;
     }
     dsortc(V->which, 1, *kev + *np, ritzr, ritzi, bounds);
 
@@ -2111,12 +2120,13 @@ dngets(struct ARPACK_arnoldi_update_vars_d *V, int* kev, int* np,
 
 
 void
-dgetv0(struct ARPACK_arnoldi_update_vars_d *V, const int initv, const int n, const int j,
+dgetv0(struct ARPACK_arnoldi_update_vars_d *V, int initv, int n, int j,
        double* v, int ldv, double* resid, double* rnorm, int* ipntr, double* workd)
 {
-    int jj, int1 = 1, int0 = 0, intm1 = -1, tmp_int;
+    int jj, int1 = 1, int0 = 0, intm1 = -1;
     char *TRANS = "T";
     const double sq2o2 = sqrt(2.0) / 2.0;
+    double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0;;
 
     if (V->ido == ido_FIRST)
     {
@@ -2218,9 +2228,9 @@ LINE20:
     V->getv0_orth = 1;
 
 LINE30:
-    dgemv_(TRANS, &n, &j, &int1, v, &ldv, workd, &int1, &int0, &workd[n], &int1);
+    dgemv_(TRANS, &n, &j, &dbl1, v, &ldv, workd, &int1, &dbl0, &workd[n], &int1);
     TRANS = "N";
-    dgemv_(TRANS, &n, &j, &intm1, v, &ldv, workd, &int1, &int1, &workd[n], &int1);
+    dgemv_(TRANS, &n, &j, &dblm1, v, &ldv, workd, &int1, &dbl1, &workd[n], &int1);
 
      /*---------------------------------------------------------*
      | Compute the B-norm of the orthogonalized starting vector |
