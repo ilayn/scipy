@@ -8,8 +8,11 @@ static int sortr_LA(const double, const double);
 static int sortr_SA(const double, const double);
 
 static const double unfl = 2.2250738585072014e-308;
-static const double ovfl = 1.0 / 2.2250738585072014e-308;
+// static const double ovfl = 1.0 / 2.2250738585072014e-308;
 static const double ulp = 2.220446049250313e-16;
+
+static void dsortr(const enum ARPACK_which, const int, const int, double*, double*);
+static void dsesrt(const enum ARPACK_which, const int, const int, double*, int, double*);
 
 enum ARPACK_seupd_type {
     REGULAR,
@@ -1851,7 +1854,7 @@ dsgets(struct ARPACK_arnoldi_update_vars_d *V, int* kev, int* np, double* ritz, 
          | are applied in subroutine dsapps.                     |
          *------------------------------------------------------*/
         dsortr(which_SM, 1, *np, bounds, ritz);
-        dcopy_(*np, ritz, &int1, shifts, &int1);
+        dcopy_(&np, ritz, &int1, shifts, &int1);
     }
 }
 

@@ -11,6 +11,8 @@ static const float unfl = 1.1754943508222875e-38;
 static const float ovfl = 1.0 / 1.1754943508222875e-38;
 static const float ulp = 1.1920928955078125e-07;
 
+static void ssortr(const enum ARPACK_which, const int, const int, float*, float*);
+static void ssesrt(const enum ARPACK_which, const int, const int, float*, int, float*);
 
 enum ARPACK_seupd_type {
     REGULAR,
@@ -21,7 +23,7 @@ enum ARPACK_seupd_type {
 
 
 void
-dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select,
+sseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select,
        float* d, float* z, int ldz, float sigma, float* resid, float* v,
        int ldv, int* ipntr, float* workd, float* workl)
 {
@@ -153,7 +155,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
     {
         bnorm2 = rnorm;
     } else {
-        bnorm2 = dnrm2_(&V->n, workd, &int1);
+        bnorm2 = snrm2_(&V->n, workd, &int1);
     }
 
     if (rvec) {
@@ -223,10 +225,10 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
          | Initialize the eigenvector matrix Q to the identity.      |
          *----------------------------------------------------------*/
         tmp_int = V->ncv - 1;
-        dcopy_(&tmp_int, &workl[ih+1], &int1, &workl[ihb], &int1);
-        dcopy_(&V->ncv, &workl[ih+ldh], &int1, &workl[ihd], &int1);
+        scopy_(&tmp_int, &workl[ih+1], &int1, &workl[ihb], &int1);
+        scopy_(&V->ncv, &workl[ih+ldh], &int1, &workl[ihd], &int1);
 
-        dsteqr_("I", &V->ncv, &workl[ihd], &workl[ihb], &workl[iq], &ldq, &workl[iw], &ierr);
+        ssteqr_("I", &V->ncv, &workl[ihd], &workl[ihb], &workl[iq], &ldq, &workl[iw], &ierr);
 
         if (ierr != 0)
         {
@@ -276,9 +278,9 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
                         workl[ihd + leftptr - 1] = workl[ihd + rightptr - 1];
                         workl[ihd + rightptr - 1] = temp;
 
-                        dcopy_(&V->ncv, &workl[iq + V->ncv * (leftptr - 1)], &int1, &workl[iw], &int1);
-                        dcopy_(&V->ncv, &workl[iq + V->ncv * (rightptr - 1)], &int1, &workl[iq + V->ncv * (leftptr - 1)], &int1);
-                        dcopy_(&V->ncv, &workl[iw], &int1, &workl[iq + V->ncv * (rightptr - 1)], &int1);
+                        scopy_(&V->ncv, &workl[iq + V->ncv * (leftptr - 1)], &int1, &workl[iw], &int1);
+                        scopy_(&V->ncv, &workl[iq + V->ncv * (rightptr - 1)], &int1, &workl[iq + V->ncv * (leftptr - 1)], &int1);
+                        scopy_(&V->ncv, &workl[iw], &int1, &workl[iq + V->ncv * (rightptr - 1)], &int1);
 
                         leftptr += 1;
                         rightptr -= 1;
@@ -288,7 +290,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
              /*---------------------------------------*
              | Load the converged Ritz values into D. |
              *---------------------------------------*/
-            dcopy_(&V->nconv, &workl[ihd], &int1, d, &int1);
+            scopy_(&V->nconv, &workl[ihd], &int1, d, &int1);
         }
 
     } else {
@@ -296,8 +298,8 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
          | Ritz vectors not required. Load Ritz values into D. |
          *----------------------------------------------------*/
 
-        dcopy_(&V->nconv, &workl[ritz], &int1, d, &int1);
-        dcopy_(&V->ncv, &workl[ritz], &int1, &workl[ihd], &int1);
+        scopy_(&V->nconv, &workl[ritz], &int1, d, &int1);
+        scopy_(&V->ncv, &workl[ritz], &int1, &workl[ihd], &int1);
     }
 
     if (TYP = REGULAR)
@@ -307,9 +309,9 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
         | bounds. Not necessary if only Ritz values are desired.  |
         *---------------------------------------------------------*/
         if (rvec) {
-            dsesrt(which_LA, &rvec, &V->nconv, d, &V->ncv, &workl[iq]);
+            ssesrt(which_LA, &rvec, &V->nconv, d, &V->ncv, &workl[iq]);
         } else {
-            dcopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
+            scopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
         }
     } else {
         /*-------------------------------------------------------------*
@@ -326,7 +328,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
         | *The Ritz vectors are not affected by the transformation.   |
         |  They are only reordered.                                   |
         *-------------------------------------------------------------*/
-        dcopy_(&V->ncv, &workl[ihd], &int1, &workl[iw], &int1);
+        scopy_(&V->ncv, &workl[ihd], &int1, &workl[iw], &int1);
         if (TYP == SHIFTI)
         {
             for (int k = 0; k < V->ncv; k++)
@@ -357,15 +359,15 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
         |  match the ordering of the lambda. We`ll use them again for |
         |  Ritz vector purification.                                  |
         *-------------------------------------------------------------*/
-        dcopy_(&V->nconv, &workl[ihd], &int1, d, &int1);
-        dsortr(which_LA, 1, &V->nconv, &workl[ihd], &workl[iw]);
+        scopy_(&V->nconv, &workl[ihd], &int1, d, &int1);
+        ssortr(which_LA, 1, &V->nconv, &workl[ihd], &workl[iw]);
         if (rvec) {
-            dsesrt(which_LA, &rvec, &V->nconv, d, &V->ncv, &workl[iq]);
+            ssesrt(which_LA, &rvec, &V->nconv, d, &V->ncv, &workl[iq]);
         } else {
-            dcopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
+            scopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
             temp = bnorm2 / rnorm;
-            dscal_(&V->ncv, &temp, &workl[ihb], &int1);
-            dsortr(which_LA, 1, &V->nconv, d, &workl[ihb]);
+            sscal_(&V->ncv, &temp, &workl[ihb], &int1);
+            ssortr(which_LA, 1, &V->nconv, d, &workl[ihb]);
         }
     }
 
@@ -382,7 +384,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
          | the wanted invariant subspace located in the first NCONV |
          | columns of workl(iq, ldq).                               |
          *---------------------------------------------------------*/
-        dgeqr2_(&V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &ierr);
+        sgeqr2_(&V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &ierr);
 
          /*-------------------------------------------------------*
          | * Postmultiply V by Q.                                 |
@@ -391,8 +393,8 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
          | of the approximate invariant subspace associated with  |
          | the Ritz values in workl(ihd).                         |
          *-------------------------------------------------------*/
-        dorm2r_("R", "N", &V->n, &V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], v, &ldv, &workd[V->n + 1], &ierr);
-        dlacpy_("A", &V->n, &V->nconv, v, &ldv, z, &ldz);
+        sorm2r_("R", "N", &V->n, &V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], v, &ldv, &workd[V->n + 1], &ierr);
+        slacpy_("A", &V->n, &V->nconv, v, &ldv, z, &ldz);
 
          /*----------------------------------------------------*
          | In order to compute the Ritz estimates for the Ritz |
@@ -404,7 +406,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
             workl[ihb + j] = dbl0;
         }
         workl[ihb + V->ncv - 1] = dbl1;
-        dorm2r_("L", "T", &V->ncv, &int1, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &V->ncv, &temp, &ierr);
+        sorm2r_("L", "T", &V->ncv, &int1, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &V->ncv, &temp, &ierr);
 
          /*----------------------------------------------------*
          | Make a copy of the last row into                    |
@@ -436,7 +438,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
          | *  Determine Ritz estimates of the lambda.      |
          *------------------------------------------------*/
 
-        dscal_(&V->ncv, &bnorm2, &workl[ihb], &int1);
+        sscal_(&V->ncv, &bnorm2, &workl[ihb], &int1);
         for (k = 0; k < V->ncv; k++)
         {
             if (TYP == SHIFTI)
@@ -472,7 +474,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
 
     if ((rvec) && (TYP != REGULAR))
     {
-        dger_(&V->n, &V->nconv, &dbl1, resid, &int1, &workl[iw], &int1, z, &ldz);
+        sger_(&V->n, &V->nconv, &dbl1, resid, &int1, &workl[iw], &int1, z, &ldz);
     }
 
     return;
@@ -480,7 +482,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_s *V, int rvec, int howmny, int* select
 
 
 void
-dsaupd(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
+ssaupd(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
        int* ipntr, float* workd, float* workl)
 {
 
@@ -568,7 +570,7 @@ dsaupd(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
 
     }
 
-    dsaup2(V, resid, v, ldv, &workl[ih], ldh, &workl[ritz], &workl[bounds],
+    ssaup2(V, resid, v, ldv, &workl[ih], ldh, &workl[ritz], &workl[bounds],
            &workl[iq], ldq, &workl[iw], ipntr, workd);
 
      /*-------------------------------------------------*
@@ -586,7 +588,7 @@ dsaupd(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
 
 
 void
-dsaup2(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
+ssaup2(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
        float* h, int ldh, float* ritz, float* bounds,
        float* q, int ldq, float* workl, int* ipntr, float* workd)
 {
@@ -646,7 +648,7 @@ dsaup2(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
      *--------------------------------------------*/
     if (V->aup2_getv0)
     {
-        dgetv0(V, V->aup2_initv, V->n, 0, v, ldv, resid, &V->aup2_rnorm, ipntr, workd);
+        sgetv0(V, V->aup2_initv, V->n, 0, v, ldv, resid, &V->aup2_rnorm, ipntr, workd);
         if (V->ido != 99) { return; }
         if (V->aup2_rnorm == 0.0)
         {
@@ -656,8 +658,8 @@ dsaup2(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
              | the rest figure things out for zero eigenvalues.      |
              *------------------------------------------------------*/
             generate_random_vector_d(&V->n, resid);
-            V->aup2_rnorm = dnrm2_(&V->n, resid, &int1);
-            dscal_(&V->n, &V->aup2_rnorm, resid, &int1);
+            V->aup2_rnorm = snrm2_(&V->n, resid, &int1);
+            sscal_(&V->n, &V->aup2_rnorm, resid, &int1);
         }
         V->aup2_getv0 = 0;
         V->ido = 0;
@@ -686,7 +688,7 @@ dsaup2(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv,
      | Compute the first NEV steps of the Lanczos factorization |
      *---------------------------------------------------------*/
 
-    dsaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
+    ssaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
 
      /*------------------------------------------------*
      | ido = 99 implies use of reverse communication;  |
@@ -725,7 +727,7 @@ LINE1000:
 LINE20:
     V->aup2_update = 1;
 
-    dsaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
+    ssaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
 
      /*--------------------------------------------------*
      | ido .ne. 99 implies use of reverse communication  |
@@ -750,7 +752,7 @@ LINE20:
      | of the current symmetric tridiagonal matrix.           |
      *-------------------------------------------------------*/
 
-    dseigt(V->aup2_rnorm, V->nev, h, ldh, ritz, bounds, workl, &ierr);
+    sseigt(V->aup2_rnorm, V->nev, h, ldh, ritz, bounds, workl, &ierr);
 
     if (ierr != 0)
     {
@@ -764,8 +766,8 @@ LINE20:
      | bounds obtained from _seigt.                       |
      *---------------------------------------------------*/
 
-    dcopy_(&V->aup2_kplusp, ritz, &int1, &workl[V->aup2_kplusp], &int1);
-    dcopy_(&V->aup2_kplusp, bounds, &int1, &workl[2*V->aup2_kplusp], &int1);
+    scopy_(&V->aup2_kplusp, ritz, &int1, &workl[V->aup2_kplusp], &int1);
+    scopy_(&V->aup2_kplusp, bounds, &int1, &workl[2*V->aup2_kplusp], &int1);
 
      /*--------------------------------------------------*
      | Select the wanted Ritz values and their bounds    |
@@ -780,13 +782,13 @@ LINE20:
     V->nev = V->aup2_nev0;
     V->np = V->aup2_np0;
 
-    dsgets(V, &V->nev, &V->np, ritz, bounds, workl);
+    ssgets(V, &V->nev, &V->np, ritz, bounds, workl);
 
      /*------------------*
      | Convergence test |
      *------------------*/
-    dcopy_(&V->nev, &bounds[V->np], &int1, &workl[V->np], &int1);
-    dsconv(V->nev, &ritz[V->np], &workl[V->np], V->tol, &V->nconv);
+    scopy_(&V->nev, &bounds[V->np], &int1, &workl[V->np], &int1);
+    ssconv(V->nev, &ritz[V->np], &workl[V->np], V->tol, &V->nconv);
 
      /*--------------------------------------------------------*
      | Count the number of unwanted Ritz values that have zero |
@@ -829,7 +831,7 @@ LINE20:
              | overlapping locations.                              |
              *----------------------------------------------------*/
 
-            dsortr(sortr_SA, 1, V->aup2_kplusp, ritz, bounds);
+            ssortr(sortr_SA, 1, V->aup2_kplusp, ritz, bounds);
             nevd2 = nev0 / 2;
             nevm2 = nev0 - nevd2;
             if (V->nev > 1)
@@ -837,8 +839,8 @@ LINE20:
                 V->np = V->aup2_kplusp - nev0;
                 tmp_int = (nevd2 < V->np ? nevd2 : V->np);
                 tmp_int2 = V->aup2_kplusp - (nevd2 < V->np ? nevd2 : V->np);
-                dswap_(&tmp_int, &ritz[nevm2], &int1, &ritz[tmp_int2], &int1);
-                dswap_(&tmp_int, &bounds[nevm2], &int1, &bounds[tmp_int2], &int1);
+                sswap_(&tmp_int, &ritz[nevm2], &int1, &ritz[tmp_int2], &int1);
+                sswap_(&tmp_int, &bounds[nevm2], &int1, &bounds[tmp_int2], &int1);
             }
 
         } else {
@@ -866,7 +868,7 @@ LINE20:
                 temp_which = which_LA;
             }
 
-            dsortr(temp_which, 1, V->aup2_kplusp, ritz, bounds);
+            ssortr(temp_which, 1, V->aup2_kplusp, ritz, bounds);
         }
 
          /*------------------------------------------------------*
@@ -888,7 +890,7 @@ LINE20:
          | (in the case when NCONV < NEV.)                    |
          *---------------------------------------------------*/
 
-        dsortr(which_LA, 1, V->aup2_nev0, bounds, ritz);
+        ssortr(which_LA, 1, V->aup2_nev0, bounds, ritz);
 
          /*---------------------------------------------*
          | Scale the Ritz estimate back to its original |
@@ -916,7 +918,7 @@ LINE20:
              | order.  The "threshold" values are in the      |
              | middle.                                        |
              *-----------------------------------------------*/
-            dsortr(sortr_LA, 1, V->nconv, ritz, bounds);
+            ssortr(sortr_LA, 1, V->nconv, ritz, bounds);
         } else {
 
              /*---------------------------------------------*
@@ -925,7 +927,7 @@ LINE20:
              | "threshold" value appears at the front of    |
              | ritz.                                        |
              *---------------------------------------------*/
-            dsortr(V->which, 1, V->nconv, ritz, bounds);
+            ssortr(V->which, 1, V->nconv, ritz, bounds);
         }
 
          /*-----------------------------------------*
@@ -977,7 +979,7 @@ LINE20:
 
         if (nevbef < V->nev)
         {
-            dsgets(V, &V->nev, &V->np, ritz, bounds, workl);
+            ssgets(V, &V->nev, &V->np, ritz, bounds, workl);
         }
     }
 
@@ -1008,7 +1010,7 @@ LINE50:
      | in the exact shift case, dsgets already handles this.   |
      *--------------------------------------------------------*/
 
-    if (V->ishift == 0) { dcopy_(&V->np, workl, &int1, ritz, &int1); }
+    if (V->ishift == 0) { scopy_(&V->np, workl, &int1, ritz, &int1); }
 
      /*--------------------------------------------------------*
      | Apply the NP0 implicit shifts by QR bulge chasing.      |
@@ -1018,7 +1020,7 @@ LINE50:
      | factorization of length NEV.                            |
      *--------------------------------------------------------*/
 
-    dsapps(V, V->np, V->nev, V->np, ritz, v, ldv, h, ldh, q, ldq, workd);
+    ssapps(V, V->np, V->nev, V->np, ritz, v, ldv, h, ldh, q, ldq, workd);
 
      /*--------------------------------------------*
      | Compute the B-norm of the updated residual. |
@@ -1030,13 +1032,13 @@ LINE50:
 
     if (V->bmat)
     {
-        dcopy_(&V->n, resid, &int1, &workd[V->n], &int1);
+        scopy_(&V->n, resid, &int1, &workd[V->n], &int1);
         ipntr[0] = V->n;
         ipntr[1] = 0;
         V->ido = ido_BX;
         return;
     } else {
-        dcopy_(&V->n, resid, &int1, workd, &int1);
+        scopy_(&V->n, resid, &int1, workd, &int1);
     }
 
 LINE100:
@@ -1049,10 +1051,10 @@ LINE100:
 
     if (V->bmat)
     {
-        temp = ddot_(&V->n, resid, &int1, workd, &int1);
-        temp = sqrt(fabsf(temp));
+        temp = sdot_(&V->n, resid, &int1, workd, &int1);
+        temp = sqrtf(fabsf(temp));
     } else {
-        temp = dnrm2_(&V->n, resid, &int1);
+        temp = snrm2_(&V->n, resid, &int1);
     }
     V->aup2_rnorm = temp;
 
@@ -1064,7 +1066,7 @@ LINE100:
 
 
 int
-dsconv(int n, float *ritz, float *bounds, float tol) {
+ssconv(int n, float *ritz, float *bounds, float tol) {
     // Local variables
     int i, nconv = 0;
     const float eps23 = pow(ulp, 2.0 / 3.0);
@@ -1082,17 +1084,16 @@ dsconv(int n, float *ritz, float *bounds, float tol) {
 }
 
 void
-dseigt(float rnorm, int n, float* h, int ldh, float* eig, float* bounds,
-       float* workl, int* ierr)
+sseigt(float rnorm, int n, float* h, int ldh, float* eig, float* bounds, float* workl, int* ierr)
 {
     // Parameters
     const float zero = 0.0;
     // Local variables
     int k, int1 = 1, tmp_int;
-    dcopy_(n, &h[ldh], &int1, eig, &int1);
+    scopy_(n, &h[ldh], &int1, eig, &int1);
     tmp_int = n - 1;
-    dcopy_(&tmp_int, &h[1], &int1, workl, &int1);
-    dstqrb(n, eig, workl, bounds, &workl[n], ierr);
+    scopy_(&tmp_int, &h[1], &int1, workl, &int1);
+    sstqrb(n, eig, workl, bounds, &workl[n], ierr);
     if (*ierr != 0) return;
     for (k = 0; k < n; k++) { bounds[k] = rnorm * fabsf(bounds[k]); }
     return;
@@ -1101,13 +1102,13 @@ dseigt(float rnorm, int n, float* h, int ldh, float* eig, float* bounds,
 
 
 void
-dsaitr(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* rnorm,
+ssaitr(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* rnorm,
        float* v, int ldv, float* h, int ldh, int* ipntr, float* workd)
 {
     int i, infol, ipj, irj, ivj, jj, n, tmp_int;
     float smlnum = unfl * ( V->n / ulp);
     float xtemp[2] = { 0.0 };
-    const float sq2o2 = sqrt(2.0) / 2.0;
+    const float sq2o2 = sqrtf(2.0) / 2.0;
 
     char *MTYPE = "G", *TRANS = "T", *NORM = "1";
     int int1 = 1, int0 = 0;
@@ -1188,7 +1189,7 @@ LINE20:
     V->aitr_restart = 1;
     V->ido = ido_FIRST;
 LINE30:
-    dgetv0(V, 0, n, V->aitr_j, v, ldv, resid, rnorm, ipntr, workd, &V->aitr_ierr);
+    sgetv0(V, 0, n, V->aitr_j, v, ldv, resid, rnorm, ipntr, workd, &V->aitr_ierr);
     if (V->ido != ido_DONE) { return; }
     if (V->aitr_ierr < 0)
     {
@@ -1211,15 +1212,15 @@ LINE40:
      | when reciprocating a small RNORM, test against lower    |
      | machine bound.                                          |
      *--------------------------------------------------------*/
-    dcopy_(&n, resid, &int1, &v[ldv*(V->aitr_j)], &int1);
+    scopy_(&n, resid, &int1, &v[ldv*(V->aitr_j)], &int1);
     if (*rnorm >= unfl)
     {
         temp1 = 1.0 / *rnorm;
-        dscal_(&n, &temp1, &v[ldv*(V->aitr_j)], &int1);
-        dscal_(&n, &temp1, &workd[ipj], &int1);
+        sscal_(&n, &temp1, &v[ldv*(V->aitr_j)], &int1);
+        sscal_(&n, &temp1, &workd[ipj], &int1);
     } else {
-        dlascl_(MTYPE, &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*(V->aitr_j)], &n, &infol);
-        dlascl_(MTYPE, &i, &i, rnorm, &dbl1, &n, &int1, &workd[ipj], &n, &infol);
+        slascl_(MTYPE, &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*(V->aitr_j)], &n, &infol);
+        slascl_(MTYPE, &i, &i, rnorm, &dbl1, &n, &int1, &workd[ipj], &n, &infol);
     }
 
      /*-----------------------------------------------------*
@@ -1227,7 +1228,7 @@ LINE40:
      | Note that this is not quite yet r_{j}. See STEP 4    |
      *-----------------------------------------------------*/
     V->aitr_step3 = 1;
-    dcopy_(&n, &v[ldv*(V->aitr_j)], &int1, &workd[ivj], &int1);
+    scopy_(&n, &v[ldv*(V->aitr_j)], &int1, &workd[ivj], &int1);
     ipntr[0] = ivj;
     ipntr[1] = irj;
     ipntr[2] = ipj;
@@ -1248,7 +1249,7 @@ LINE50:
      /*-----------------------------------------*
      | Put another copy of OP*v_{j} into RESID. |
      *-----------------------------------------*/
-    dcopy_(&n, &workd[irj], &int1, resid, &int1);
+    scopy_(&n, &workd[irj], &int1, resid, &int1);
 
      /*------------------------------------------*
      | STEP 4:  Finish extending the symmetric   |
@@ -1269,7 +1270,7 @@ LINE50:
          *------------------------------------*/
         return;
     } else {
-        dcopy_(&n, resid, &int1, &workd[ipj], &int1);
+        scopy_(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE60:
@@ -1294,13 +1295,13 @@ LINE65:
          | Note that the B-norm of OP*v_{j} |
          | is the inv(B)-norm of A*v_{j}.   |
          *---------------------------------*/
-        V->aitr_wnorm = ddot_(&n, resid, &int1, &workd[ivj], &int1);
-        V->aitr_wnorm = sqrt(fabsf(V->aitr_wnorm));
+        V->aitr_wnorm = sdot_(&n, resid, &int1, &workd[ivj], &int1);
+        V->aitr_wnorm = sqrtf(fabsf(V->aitr_wnorm));
     } else if (V->bmat) {
-        V->aitr_wnorm = ddot_(&n, resid, &int1, &workd[ipj], &int1);
-        V->aitr_wnorm = sqrt(fabsf(V->aitr_wnorm));
+        V->aitr_wnorm = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        V->aitr_wnorm = sqrtf(fabsf(V->aitr_wnorm));
     } else {
-        V->aitr_wnorm = dnrm2_(&n, resid, &int1);
+        V->aitr_wnorm = snrm2_(&n, resid, &int1);
     }
 
      /*----------------------------------------*
@@ -1318,16 +1319,16 @@ LINE65:
 
     if (V->mode != 2)
     {
-        dgemv_("T", &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
+        sgemv_("T", &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
     } else {
-        dgemv_("T", &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ivj], &int1, &dbl0, &workd[irj], &int1);
+        sgemv_("T", &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ivj], &int1, &dbl0, &workd[irj], &int1);
     }
 
      /*-------------------------------------*
      | Orthgonalize r_{j} against V_{j}.    |
      | RESID contains OP*v_{j}. See STEP 3. |
      *-------------------------------------*/
-    dgemv("N", &n, &V->aitr_j, &dblm1, v, &ldv, &workd[irj], &int1, &dbl0, resid, &int1);
+    sgemv("N", &n, &V->aitr_j, &dblm1, v, &ldv, &workd[irj], &int1, &dbl0, resid, &int1);
 
      /*-------------------------------------*
      | Extend H to have j rows and columns. |
@@ -1346,7 +1347,7 @@ LINE65:
 
     if (V->bmat)
     {
-        dcopy_(&n, resid, &int1, &workd[irj], &int1);
+        scopy_(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
         V->ido = ido_BX;
@@ -1355,7 +1356,7 @@ LINE65:
          *---------------------------------*/
         return;
     } else {
-        dcopy_(&n, resid, &int1, &workd[ipj], &int1);
+        scopy_(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE70:
@@ -1372,10 +1373,10 @@ LINE70:
      *-----------------------------*/
     if (V->bmat)
     {
-        *rnorm = ddot_(&n, resid, &int1, &workd[ipj], &int1);
-        *rnorm = sqrt(fabsf(*rnorm));
+        *rnorm = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        *rnorm = sqrtf(fabsf(*rnorm));
     } else {
-        *rnorm = dnrm2_(&n, resid, &int1);
+        *rnorm = snrm2_(&n, resid, &int1);
     }
 
      /*----------------------------------------------------------*
@@ -1409,7 +1410,7 @@ LINE80:
      | WORKD(IRJ:IRJ+J-1) = v(:,1:J)'*WORKD(IPJ:IPJ+N-1). |
      *---------------------------------------------------*/
 
-    dgemv_("T", &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
+    sgemv_("T", &n, &V->aitr_j, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
 
      /*--------------------------------------------*
      | Compute the correction to the residual:     |
@@ -1418,7 +1419,7 @@ LINE80:
      | + v(:,1:J)*WORKD(IRJ:IRJ+J-1)*e'_j.         |
      *--------------------------------------------*/
 
-    dgemv_("N", &n, &V->aitr_j, &dblm1, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
+    sgemv_("N", &n, &V->aitr_j, &dblm1, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
 
     if ((V->aitr_j == 0) || (V->aitr_restart))
     {
@@ -1429,7 +1430,7 @@ LINE80:
 
     if (V->bmat)
     {
-        dcopy_(&n, resid, &int1, &workd[irj], &int1);
+        scopy_(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
         V->ido = ido_BX;
@@ -1439,7 +1440,7 @@ LINE80:
          *----------------------------------*/
         return;
     } else {
-        dcopy_(&n, resid, &int1, &workd[ipj], &int1);
+        scopy_(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE90:
@@ -1452,10 +1453,10 @@ LINE90:
      *----------------------------------------------------*/
     if (V->bmat)
     {
-        V->aitr_rnorm1 = ddot_(&n, resid, &int1, &workd[ipj], &int1);
-        V->aitr_rnorm1 = sqrt(fabsf(V->aitr_rnorm1));
+        V->aitr_rnorm1 = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        V->aitr_rnorm1 = sqrtf(fabsf(V->aitr_rnorm1));
     } else {
-        V->aitr_rnorm1 = dnrm2_(&n, resid, &int1);
+        V->aitr_rnorm1 = snrm2_(&n, resid, &int1);
     }
 
      /*----------------------------------------*
@@ -1535,7 +1536,7 @@ LINE100:
 
 
 void
-dsapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int ldh,
+ssapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int ldh,
        float* resid, float* q, int ldq, float* workd)
 {
     int i, iend, istart, itop, j, jj, kplusp, tmp_int, int1 = 1;
@@ -1758,7 +1759,7 @@ dsapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int l
      *------------------------------------------------*/
     if (h[*kev] > 0.0)
     {
-        dgemv_("N", &n, &kplusp, &dbl1, v, ldv, &q[ldq*(*kev)], &int1, &dbl0, &workd[n], &int1);
+        sgemv_("N", &n, &kplusp, &dbl1, v, ldv, &q[ldq*(*kev)], &int1, &dbl0, &workd[n], &int1);
     }
 
      /*------------------------------------------------------*
@@ -1771,8 +1772,8 @@ dsapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int l
     for (i = 0; i < *kev; i++)
     {
         tmp_int = kplusp - i;
-        dgemv_("N", &n, &tmp_int, &dbl1, v, ldv, &q[ldq*(*kev-i)], &int1, &dbl0, workd, &int1);
-        dcopy_(&n, workd, &int1, &v[ldv*(kplusp-i)], &int1);
+        sgemv_("N", &n, &tmp_int, &dbl1, v, ldv, &q[ldq*(*kev-i)], &int1, &dbl0, workd, &int1);
+        scopy_(&n, workd, &int1, &v[ldv*(kplusp-i)], &int1);
     }
     // 130
 
@@ -1781,13 +1782,13 @@ dsapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int l
      *------------------------------------------------*/
     for (i = 0; i < *kev; i++)
     {
-        dcopy_(&n, &v[ldv*(np+i)], &int1, &v[ldv*i], &int1);
+        scopy_(&n, &v[ldv*(np+i)], &int1, &v[ldv*i], &int1);
     }
     // 140
 
     if (h[*kev] > 0.0)
     {
-        dcopy_(&n, &workd[n], &int1, &v[ldv*(*kev)], &int1);
+        scopy_(&n, &workd[n], &int1, &v[ldv*(*kev)], &int1);
     }
 
      /*------------------------------------*
@@ -1801,7 +1802,7 @@ dsapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int l
     dscal_(&n, &q[kplusp-1, *kev-1], resid, &int1);
     if (h[*kev] > 0.0)
     {
-        daxpy_(&n, &h[*kev], &v[ldv*(*kev)], &int1, resid, &int1);
+        saxpy_(&n, &h[*kev], &v[ldv*(*kev)], &int1, resid, &int1);
     }
 
     return;
@@ -1809,7 +1810,7 @@ dsapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int l
 
 
 void
-dsgets(struct ARPACK_arnoldi_update_vars_s *V, int* kev, int* np, float* ritz, float* bounds, float* shifts)
+ssgets(struct ARPACK_arnoldi_update_vars_s *V, int* kev, int* np, float* ritz, float* bounds, float* shifts)
 {
     int kevd2, tmp1, tmp2, int1 = 1;
     if (V->which == which_BE)
@@ -1852,13 +1853,13 @@ dsgets(struct ARPACK_arnoldi_update_vars_s *V, int* kev, int* np, float* ritz, f
          | are applied in subroutine dsapps.                     |
          *------------------------------------------------------*/
         dsortr(which_SM, 1, *np, bounds, ritz);
-        dcopy_(*np, ritz, &int1, shifts, &int1);
+        scopy_(*np, ritz, &int1, shifts, &int1);
     }
 }
 
 
 void
-dsortr(const enum ARPACK_which w, const int apply, const int n, float* x1, float* x2)
+ssortr(const enum ARPACK_which w, const int apply, const int n, float* x1, float* x2)
 {
     int i, igap, j;
     float temp;
@@ -1913,7 +1914,7 @@ dsortr(const enum ARPACK_which w, const int apply, const int n, float* x1, float
 
 
 void
-dsesrt(const enum ARPACK_which w, const int apply, const int n, float* x, int na, float* a)
+ssesrt(const enum ARPACK_which w, const int apply, const int n, float* x, int na, float* a)
 {
     int i, igap, j, int1 = 1;
     float temp;
