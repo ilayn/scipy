@@ -176,17 +176,6 @@ struct ARPACK_arnoldi_update_vars_d {
 void snaupd(struct ARPACK_arnoldi_update_vars_s *V, float* resid, float* v, int ldv, int* ipntr, float* workd, float* workl);
 void dnaupd(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv, int* ipntr, double* workd, double* workl);
 
-/*
- * The following function is extracted out from classical ARPACK code in order
- * to replace the random number generation with NumPy Random C-API and more
- * importantly to be able to control the seed which is not possible with the
- * classical Fortran code. It can be replaced with some other random generator
- * implementation following the prototype below.
-*/
-void generate_random_vector_s(const int n, double* vec);
-void generate_random_vector_d(const int n, double* vec);
-void generate_random_vector_c(const int n, double* vec);
-void generate_random_vector_z(const int n, double* vec);
 
 #ifdef __cplusplus
 }  /* extern "C" */
