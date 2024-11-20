@@ -16,6 +16,7 @@ arpack_sources = [
 
 arpack_lib = static_library('_arpack_lib',
   arpack_sources,
+  c_args: ['-Wall', '-Wextra'],
   include_directories: ['../../../../_lib/src'],
   dependencies: [py3_dep, m_dep, np_dep, lapack_dep, blas_dep],
   link_args: version_link_args,
