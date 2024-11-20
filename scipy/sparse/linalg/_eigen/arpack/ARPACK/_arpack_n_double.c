@@ -14,10 +14,14 @@ static const double unfl = 2.2250738585072014e-308;
 // static const double ovfl = 1.0 / 2.2250738585072014e-308;
 static const double ulp = 2.220446049250313e-16;
 
+
+static void dnaup2(struct ARPACK_arnoldi_update_vars_d*, double*, double*, int, double*, int, double*, double*, double*, double*, int, double*, int*, double*);
+static void dnconv(int n, double* ritzr, double* ritzi, double* bounds, const double tol, int* nconv);
 static void dneigh(double*,int,double*,int,double*,double*,double*,double*,int,double*,int*);
 static void dnaitr(struct ARPACK_arnoldi_update_vars_d*,double*,double*,double*,int,double*,int,int*,double*);
 static void dnapps(int,int*,int,double*,double*,double*,int,double*,int,double*,double*,int,double*,double*);
 static void dngets(struct ARPACK_arnoldi_update_vars_d*,int*,int*,double*,double*,double*);
+static void dsortc(const enum ARPACK_which w, const int apply, const int n, double* xreal, double* ximag, double* y);
 
 
 enum ARPACK_neupd_type {
@@ -174,7 +178,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
          *------------------------------------*/
 
         np = V->ncv - V->nev;
-        dngets(V, V->nev, &np, &workl[irr], &workl[iri], &workl[bounds], &workl[np]);
+        dngets(V, &V->nev, &np, &workl[irr], &workl[iri], &workl[bounds]);
 
          /*----------------------------------------------------*
          | Record indices of the converged wanted Ritz values  |
@@ -218,9 +222,9 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
          *-----------------------------------------------------------*/
         tmp_int = ldh*V->ncv;
         dcopy_(&tmp_int, &workl[ih], &int1, &workl[iuptri], &int1);
-        dlaset_("A", &V->ncv, &V->ncv, &dbl0, &dbl1, &workl[invsub], ldq);
-        dlahqr_(&int1, &int1, V->ncv, &int1, V->ncv, &workl[iuptri], &ldh,
-                &workl[iheigr], &workl[iheigi], &int1, V->ncv, &workl[invsub],
+        dlaset_("A", &V->ncv, &V->ncv, &dbl0, &dbl1, &workl[invsub], &ldq);
+        dlahqr_(&int1, &int1, &V->ncv, &int1, &V->ncv, &workl[iuptri], &ldh,
+                &workl[iheigr], &workl[iheigi], &int1, &V->ncv, &workl[invsub],
                 &ldq, &ierr);
         dcopy_(&V->ncv, &workl[invsub + V->ncv - 1], &ldq, &workl[ihbds], &int1);
 
@@ -234,7 +238,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
         {
             dtrsen_("N", "V", select, &V->ncv, &workl[iuptri], &ldh, &workl[invsub], &ldq,
                     &workl[iheigr], &workl[iheigi], &nconv2, &conds, &sep, &workl[ihbds],
-                    V->ncv, iwork, &int1, &ierr);
+                    &V->ncv, iwork, &int1, &ierr);
 
             if (nconv2 < V->nconv) { V->nconv = nconv2; }
             if (ierr == 1) {
@@ -449,7 +453,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
     {
         if (rvec)
         {
-            dscal_(V->ncv, &rnorm, &workl[ihbds], &int1);
+            dscal_(&V->ncv, &rnorm, &workl[ihbds], &int1);
         }
     } else {
          /*--------------------------------------*
@@ -462,7 +466,7 @@ dneupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
         {
             if (rvec)
             {
-                dscal_(V->ncv, &rnorm, &workl[ihbds], &int1);
+                dscal_(&V->ncv, &rnorm, &workl[ihbds], &int1);
             }
 
             for (k = 0; k < V->ncv; k++)
@@ -668,7 +672,7 @@ dnaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
        double* q, int ldq, double* workl, int* ipntr, double* workd)
 {
     enum ARPACK_which temp_which;
-    int ierr, initv, int1 = 1, j, nev0, np0, tmp_int;
+    int int1 = 1, j, tmp_int;
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp = 0.0;
 
@@ -755,7 +759,7 @@ dnaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
      | Compute the first NEV steps of the Arnoldi factorization |
      *---------------------------------------------------------*/
 
-    dnaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd, &V->info);
+    dnaitr(V, resid, &V->aup2_rnorm, v, ldv, h, ldh, ipntr, workd);
 
      /*--------------------------------------------------*
      | ido .ne. 99 implies use of reverse communication  |
@@ -1107,7 +1111,7 @@ LINE100:
         V->aup2_rnorm = ddot_(&V->n, resid, &int1, workd, &int1);
         V->aup2_rnorm = sqrt(fabs(V->aup2_rnorm));
     } else {
-        V->aup2_rnorm = dnrm2(&V->n, resid, &int1);
+        V->aup2_rnorm = dnrm2_(&V->n, resid, &int1);
     }
 
     goto LINE1000;
@@ -1122,8 +1126,7 @@ LINE100:
 
 
 void
-dnconv(int n, double* ritzr, double* ritzi, double* bounds, const double tol,
-       int* nconv)
+dnconv(int n, double* ritzr, double* ritzi, double* bounds, const double tol, int* nconv)
 {
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp;
@@ -2123,7 +2126,7 @@ void
 dgetv0(struct ARPACK_arnoldi_update_vars_d *V, int initv, int n, int j,
        double* v, int ldv, double* resid, double* rnorm, int* ipntr, double* workd)
 {
-    int jj, int1 = 1, int0 = 0, intm1 = -1;
+    int jj, int1 = 1;
     char *TRANS = "T";
     const double sq2o2 = sqrt(2.0) / 2.0;
     double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0;;
@@ -2253,7 +2256,7 @@ LINE40:
         *rnorm = ddot_(&n, resid, &int1, workd, &int1);
         *rnorm = sqrt(fabs(*rnorm));
     } else {
-        *rnorm = dnrm2(&n, resid, &int1);
+        *rnorm = dnrm2_(&n, resid, &int1);
     }
 
      /*-------------------------------------*
