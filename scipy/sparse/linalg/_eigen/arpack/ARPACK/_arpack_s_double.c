@@ -11,8 +11,16 @@ static const double unfl = 2.2250738585072014e-308;
 // static const double ovfl = 1.0 / 2.2250738585072014e-308;
 static const double ulp = 2.220446049250313e-16;
 
-static void dsortr(const enum ARPACK_which, const int, const int, double*, double*);
-static void dsesrt(const enum ARPACK_which, const int, const int, double*, int, double*);
+
+static void dsaup2(struct ARPACK_arnoldi_update_vars_d*, double*, double*, int, double*, int, double*, double*, double*, int, double*, int*, double*);
+static int dsconv(int, double*, double*, double);
+static void dseigt(double, int, double*, int, double*, double*, double*, int*);
+static void dsaitr(struct ARPACK_arnoldi_update_vars_d*, double*, double*, double*, int, double*, int, int*, double*);
+static void dsapps(int, int*, int, double*, double*, int, double*, int, double*, double* , int, double*);
+static void dsgets(struct ARPACK_arnoldi_update_vars_d*, int*, int*, double*, double*, double*);
+static void dsortr(const enum ARPACK_which w, const int apply, const int n, double* x1, double* x2);
+static void dsesrt(const enum ARPACK_which w, const int apply, const int n, double* x, int na, double* a);
+
 
 enum ARPACK_seupd_type {
     REGULAR,
@@ -28,10 +36,10 @@ dseupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
        int ldv, int* ipntr, double* workd, double* workl)
 {
     const double eps23 = pow(ulp, 2.0 / 3.0);
-    int i, j, jj, k;
-    int ibd, ih, ihb, ihd, iq, irz, iw, ldh, ldq, ritz, bounds, ierr, next, np;
-    int ierr = 0, int1 = 1, tmp_int = 0, nconv2 = 0, numcnv, outncv, reord;
-    double bnorm2, conds, rnorm, sep, temp, temp1, dbl0 = 0.0, dbl1 = 1.0, dblm1 = -1.0;
+    int j, jj, k;
+    int ibd, ih, ihb, ihd, iq, irz, iw, ldh, ldq, ritz, bounds, next, np;
+    int ierr = 0, int1 = 1, tmp_int = 0, numcnv, reord;
+    double bnorm2, rnorm, temp, temp1, dbl0 = 0.0, dbl1 = 1.0;
 
     if (V->nconv == 0) { return; }
 
@@ -183,7 +191,7 @@ dseupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
          *------------------------------------*/
         np = V->ncv - V->nev;
         V->ishift = 0;
-        dsgets(V, V->nev, &np, &workl[irz], &workl[bounds], workl);
+        dsgets(V, &V->nev, &np, &workl[irz], &workl[bounds], workl);
 
          /*----------------------------------------------------*
          | Record indices of the converged wanted Ritz values  |
@@ -302,14 +310,14 @@ dseupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
         dcopy_(&V->ncv, &workl[ritz], &int1, &workl[ihd], &int1);
     }
 
-    if (TYP = REGULAR)
+    if (TYP == REGULAR)
     {
         /*---------------------------------------------------------*
         | Ascending sort of wanted Ritz values, vectors and error |
         | bounds. Not necessary if only Ritz values are desired.  |
         *---------------------------------------------------------*/
         if (rvec) {
-            dsesrt(which_LA, &rvec, &V->nconv, d, &V->ncv, &workl[iq]);
+            dsesrt(which_LA, rvec, V->nconv, d, V->ncv, &workl[iq]);
         } else {
             dcopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
         }
@@ -360,14 +368,14 @@ dseupd(struct ARPACK_arnoldi_update_vars_d *V, int rvec, int howmny, int* select
         |  Ritz vector purification.                                  |
         *-------------------------------------------------------------*/
         dcopy_(&V->nconv, &workl[ihd], &int1, d, &int1);
-        dsortr(which_LA, 1, &V->nconv, &workl[ihd], &workl[iw]);
+        dsortr(which_LA, 1, V->nconv, &workl[ihd], &workl[iw]);
         if (rvec) {
-            dsesrt(which_LA, &rvec, &V->nconv, d, &V->ncv, &workl[iq]);
+            dsesrt(which_LA, rvec, V->nconv, d, V->ncv, &workl[iq]);
         } else {
             dcopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
             temp = bnorm2 / rnorm;
             dscal_(&V->ncv, &temp, &workl[ihb], &int1);
-            dsortr(which_LA, 1, &V->nconv, d, &workl[ihb]);
+            dsortr(which_LA, 1, V->nconv, d, &workl[ihb]);
         }
     }
 
@@ -593,7 +601,7 @@ dsaup2(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* v, int ldv
        double* q, int ldq, double* workl, int* ipntr, double* workd)
 {
     enum ARPACK_which temp_which;
-    int ierr, initv, int1 = 1, j, nev0, np0, tmp_int, tmp_int2;
+    int ierr, int1 = 1, j, nev0, tmp_int, tmp_int2;
     int nevbef, nevd2, nevm2;
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp = 0.0;
@@ -788,7 +796,7 @@ LINE20:
      | Convergence test |
      *------------------*/
     dcopy_(&V->nev, &bounds[V->np], &int1, &workl[V->np], &int1);
-    dsconv(V->nev, &ritz[V->np], &workl[V->np], V->tol, &V->nconv);
+    V->nconv = dsconv(V->nev, &ritz[V->np], &workl[V->np], V->tol);
 
      /*--------------------------------------------------------*
      | Count the number of unwanted Ritz values that have zero |
@@ -831,7 +839,7 @@ LINE20:
              | overlapping locations.                              |
              *----------------------------------------------------*/
 
-            dsortr(sortr_SA, 1, V->aup2_kplusp, ritz, bounds);
+            dsortr(which_SA, 1, V->aup2_kplusp, ritz, bounds);
             nevd2 = nev0 / 2;
             nevm2 = nev0 - nevd2;
             if (V->nev > 1)
@@ -918,7 +926,7 @@ LINE20:
              | order.  The "threshold" values are in the      |
              | middle.                                        |
              *-----------------------------------------------*/
-            dsortr(sortr_LA, 1, V->nconv, ritz, bounds);
+            dsortr(which_LA, 1, V->nconv, ritz, bounds);
         } else {
 
              /*---------------------------------------------*
@@ -1020,7 +1028,7 @@ LINE50:
      | factorization of length NEV.                            |
      *--------------------------------------------------------*/
 
-    dsapps(V, V->np, V->nev, V->np, ritz, v, ldv, h, ldh, q, ldq, workd);
+    dsapps(V->n, &V->nev, V->np, ritz, v, ldv, h, ldh, resid, q, ldq, workd);
 
      /*--------------------------------------------*
      | Compute the B-norm of the updated residual. |
@@ -1066,7 +1074,8 @@ LINE100:
 
 
 int
-dsconv(int n, double *ritz, double *bounds, double tol) {
+dsconv(int n, double *ritz, double *bounds, double tol)
+{
     // Local variables
     int i, nconv = 0;
     const double eps23 = pow(ulp, 2.0 / 3.0);
@@ -1087,11 +1096,9 @@ void
 dseigt(double rnorm, int n, double* h, int ldh, double* eig, double* bounds,
        double* workl, int* ierr)
 {
-    // Parameters
-    const double zero = 0.0;
     // Local variables
     int k, int1 = 1, tmp_int;
-    dcopy_(n, &h[ldh], &int1, eig, &int1);
+    dcopy_(&n, &h[ldh], &int1, eig, &int1);
     tmp_int = n - 1;
     dcopy_(&tmp_int, &h[1], &int1, workl, &int1);
     dstqrb(n, eig, workl, bounds, &workl[n], ierr);
@@ -1106,14 +1113,14 @@ void
 dsaitr(struct ARPACK_arnoldi_update_vars_d *V, double* resid, double* rnorm,
        double* v, int ldv, double* h, int ldh, int* ipntr, double* workd)
 {
-    int i, infol, ipj, irj, ivj, jj, n, tmp_int;
-    double smlnum = unfl * ( V->n / ulp);
-    double xtemp[2] = { 0.0 };
+    int i, infol, ipj, irj, ivj, jj, n;
+    // double smlnum = unfl * ( V->n / ulp);
+    // double xtemp[2] = { 0.0 };
     const double sq2o2 = sqrt(2.0) / 2.0;
 
-    char *MTYPE = "G", *TRANS = "T", *NORM = "1";
-    int int1 = 1, int0 = 0;
-    double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0, temp1, tmp_dbl, tst1;
+    char *MTYPE = "G";
+    int int1 = 1;
+    double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0, temp1;
 
     n = V->n;  // n is constant, this is just for typing convenience
     ipj = 0;
@@ -1329,7 +1336,7 @@ LINE65:
      | Orthgonalize r_{j} against V_{j}.    |
      | RESID contains OP*v_{j}. See STEP 3. |
      *-------------------------------------*/
-    dgemv("N", &n, &V->aitr_j, &dblm1, v, &ldv, &workd[irj], &int1, &dbl0, resid, &int1);
+    dgemv_("N", &n, &V->aitr_j, &dblm1, v, &ldv, &workd[irj], &int1, &dbl0, resid, &int1);
 
      /*-------------------------------------*
      | Extend H to have j rows and columns. |
@@ -1760,7 +1767,7 @@ dsapps(int n, int* kev, int np, double* shift, double* v, int ldv, double* h, in
      *------------------------------------------------*/
     if (h[*kev] > 0.0)
     {
-        dgemv_("N", &n, &kplusp, &dbl1, v, ldv, &q[ldq*(*kev)], &int1, &dbl0, &workd[n], &int1);
+        dgemv_("N", &n, &kplusp, &dbl1, v, &ldv, &q[ldq*(*kev)], &int1, &dbl0, &workd[n], &int1);
     }
 
      /*------------------------------------------------------*
@@ -1773,7 +1780,7 @@ dsapps(int n, int* kev, int np, double* shift, double* v, int ldv, double* h, in
     for (i = 0; i < *kev; i++)
     {
         tmp_int = kplusp - i;
-        dgemv_("N", &n, &tmp_int, &dbl1, v, ldv, &q[ldq*(*kev-i)], &int1, &dbl0, workd, &int1);
+        dgemv_("N", &n, &tmp_int, &dbl1, v, &ldv, &q[ldq*(*kev-i)], &int1, &dbl0, workd, &int1);
         dcopy_(&n, workd, &int1, &v[ldv*(kplusp-i)], &int1);
     }
     // 130
@@ -1800,7 +1807,7 @@ dsapps(int n, int* kev, int np, double* shift, double* v, int ldv, double* h, in
      |    betak = e_{kev+1}'*H*e_{kev}     |
      *------------------------------------*/
 
-    dscal_(&n, &q[kplusp-1, *kev-1], resid, &int1);
+    dscal_(&n, &q[kplusp-1 + (*kev-1)*ldq], resid, &int1);
     if (h[*kev] > 0.0)
     {
         daxpy_(&n, &h[*kev], &v[ldv*(*kev)], &int1, resid, &int1);
@@ -1854,7 +1861,7 @@ dsgets(struct ARPACK_arnoldi_update_vars_d *V, int* kev, int* np, double* ritz, 
          | are applied in subroutine dsapps.                     |
          *------------------------------------------------------*/
         dsortr(which_SM, 1, *np, bounds, ritz);
-        dcopy_(&np, ritz, &int1, shifts, &int1);
+        dcopy_(np, ritz, &int1, shifts, &int1);
     }
 }
 
