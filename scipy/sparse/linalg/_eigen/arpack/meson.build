@@ -16,6 +16,7 @@ arpack_sources = [
 
 arpack_lib = static_library('_arpack_lib',
   arpack_sources,
+  c_args: ['-Wall', '-Wextra'],
   fortran_args: [fortran_ignore_warnings, _suppress_all_warnings],
   include_directories: ['ARPACK/SRC'],
   override_options: ['b_lto=false'],
