@@ -3,6 +3,7 @@
 // BLAS Routines used
 void daxpy_(int* n, double* alpha, double* x, int* incx, double* y, int* incy);
 void dcopy_(int* n, double* x, int* incx, double* y, int* incy);
+double ddot_(int* n, double* x, int* incx, double* y, int* incy);
 void dgemv_(char* trans, int* m, int* n, double* alpha, double* a, int* lda, double* x, int* incx, double* beta, double* y, int* incy);
 void dger_(int* m, int* n, double* alpha, double* x, int* incx, double* y, int* incy, double* a, int* lda);
 double dnrm2_(int* n, double* x, int* incx);
@@ -15,5 +16,6 @@ void dtrmm_(char* side, char* uplo, char* transa, char* diag, int* m, int* n, do
 void dgeqr2_(int* m, int* n, double* a, int* lda, double* tau, double* work, int* info);
 void dlacpy_(char* uplo, int* m, int* n, double* a, int* lda, double* b, int* ldb);
 void dlartg_(double* f, double* g, double* c, double* s, double* r);
+void dlascl_(char* mtype, int* kl, int* ku, double* cfrom, double* cto, int* m, int* n, double* a, int* lda, int* info);
 void dorm2r_(char* side, char* trans, int* m, int* n, int* k, double* a, int* lda, double* tau, double* c, int* ldc, double* work, int* info);
 void dsteqr_(char* compz, int* n, double* d, double* e, double* z, int* ldz, double* work, int* info);
