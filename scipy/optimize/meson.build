@@ -159,9 +159,11 @@ py3.extension_module('_bglu_dense',
 py3.extension_module('_slsqplib',
   [
     '__slsqp.h',
+    '__slsqp.c',
     '__nnls.h',
     '__nnls.c'
   ],
+  c_args: ['-Wall', '-Wextra'],
   dependencies: [lapack_dep, blas_dep, np_dep],
   link_args: version_link_args,
   install: true,
