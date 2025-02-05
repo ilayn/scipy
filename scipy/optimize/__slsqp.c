@@ -1,8 +1,98 @@
 #include "__slsqp.h"
 
 void nonnegative_lsq_imp(const int m, const int n, double* restrict a, double* restrict b, double* restrict x, double* restrict w, double* restrict zz, double* restrict work, int* restrict indices, const int maxiter, double* rnorm, int* info);
-// static void ldp(int m, int n, double* g, double* h, double* x, double* buffer, int* indices, double* xnorm, int* mode);
-// static void lsi(int me, int mg, int n, double* e, double* f, double* g, double* h, double* x, double* buffer, int* jw, double* xnorm, int* mode);
+static void ldp(int m, int n, double* g, double* h, double* x, double* buffer, int* indices, double* xnorm, int* mode);
+static void lsi(int me, int mg, int n, double* e, double* f, double* g, double* h, double* x, double* buffer, int* jw, double* xnorm, int* mode);
+
+
+
+/*
+ * Solve equality and inequality constrained least squares problem (LSEI)
+ *      min |A*x - b|, subject to E*x = f, G*x >= h.
+ *
+ *  ma, me, mg : number of rows in A, E, G
+ *  n          : number of columns in A, x
+ *  a          : matrix A (ma x n)
+ *  b          : vector b (ma)
+ *  e          : matrix E (me x n)
+ *  f          : vector f (me)
+ *  g          : matrix G (mg x n)
+ *  h          : vector h (mg)
+ *  x          : solution vector x (n)
+ *  buffer     : work buffer
+ *  jw         : integer work array
+ *  xnorm      : norm of the solution
+ *  mode       : return code
+ *
+ *  The buffer pointers:
+ *  buffer[0]              : Lagrange multipliers (me + mg)
+ *  buffer[me + mg]        : wb, Modified b vector (ma)
+ *  buffer[me + mg + ma]   : wh, Modified h vector (mg)
+ *  buffer[me + 2*mg + ma] : The remaining buffer for modified arrays and LSI problem
+ *
+ */
+void
+lsei(int ma, int me, int mg, int n,
+     double* a, double* b, double* e, double* f, double* g, double* h,
+     double* x, double* buffer, int* jw, double* xnorm, int* mode)
+{
+    int one = 1, tmp_int = 0;
+    double done = 1.0, dmone = -1.0;
+    const double epsmach = 2.220446049250313e-16;
+
+    if (me > n) { *mode = 2; return; }
+
+    //    [E]         [E2   R]
+    //    [A] @ Q.T = [A2  A1]
+    //    [G]         [G2  G1]
+    // me = 0 skips the equality constraint related computations
+    // RQ decomposition of equality constraint data E and application to A, G.
+    dgerq2_(&me, &n, e, &me, buffer, &buffer[tmp_int], mode);
+
+    // Right triangularize E and apply Q.T to A and G from the right.
+    dormr2_("R", "T", &ma, &n, &me, e, &me, buffer, a, &ma, &buffer[tmp_int], mode);
+    dormr2_("R", "T", &ma, &n, &me, e, &me, buffer, g, &mg, &buffer[tmp_int], mode);
+
+    // Check the diagonal elements of E for rank deficiency.
+    for (int i = 0; i < me; i++) {
+        if (fabs(e[i + i*me]) < epsmach) { *mode = 6;return; }
+    }
+    // Solve E*x = f and modify b.
+    // Note: RQ forms R at the right of E instead of [0, 0] position.
+    dtrsv_("U", "N", "N", &me, &e[(n - me)*me], &ma, x, &one);
+
+    // Zero out the lagrange multipliers for the inequality constraints.
+    for (int i = me; i < mg; i++) { buffer[i] = 0.0; }
+
+    // If the problem is fully equality constrained then we are done. No free
+    // variables left.
+    if (me == n) { *mode = 1;return; }
+
+    // After the triangularization of E, the free variables are reduced by
+    // the number of equality constraints. Hence the resulting LSI problem has
+    // n - me inequality constraints.
+    int nineq = n - me;
+
+    // Compute the temporary vector wf = f - E2*x
+    double* restrict wb = &buffer[me + mg];
+    for (int i = 0; i < ma; i++) { wb[i] = b[i]; }
+    tmp_int = (n - me);
+    dgemv_("N", &ma, &tmp_int, &dmone, a, &ma, x, &one, &done, wb, &one);
+
+    // Store the transformed A and G corresponding to the free variables
+
+
+
+
+
+
+
+
+
+
+
+
+}
 
 
 /*
