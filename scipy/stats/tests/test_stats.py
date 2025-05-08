@@ -40,9 +40,9 @@ from scipy.stats._stats_py import (_permutation_distribution_t, _chk_asarray, _m
                                    LinregressResult, _xp_mean, _xp_var, _SimpleChi2)
 from scipy._lib._util import AxisError
 from scipy.conftest import skip_xp_invalid_arg
-from scipy._lib._array_api import (array_namespace, is_lazy_array, is_numpy,
-                                   is_torch, xp_default_dtype, xp_size, SCIPY_ARRAY_API,
-                                   make_skip_xp_backends)
+from scipy._lib._array_api import (array_namespace, eager_warns, is_lazy_array,
+                                   is_numpy, is_torch, xp_default_dtype, xp_size,
+                                   SCIPY_ARRAY_API, make_skip_xp_backends)
 from scipy._lib._array_api_no_0d import xp_assert_close, xp_assert_equal
 import scipy._lib.array_api_extra as xpx
 from scipy._lib.array_api_extra.testing import lazy_xp_function
@@ -651,6 +651,7 @@ class TestPearsonr:
             assert_equal(res2.statistic, res.statistic)
             assert_equal(res2.pvalue, res.pvalue)
 
+    @pytest.mark.slow
     @pytest.mark.parametrize('alternative', ('less', 'greater', 'two-sided'))
     def test_bootstrap_ci(self, alternative):
         rng = np.random.default_rng(2462935790378923)
@@ -2970,11 +2971,7 @@ class TestZmap:
         scores = xp.arange(3)
         compare = xp.ones(3)
         ref = xp.asarray([-xp.inf, xp.nan, xp.inf])
-        warn_ctx = (
-            contextlib.nullcontext() if is_lazy_array(scores)
-            else pytest.warns(RuntimeWarning, match="Precision loss occurred..."))
-
-        with warn_ctx:
+        with eager_warns(scores, RuntimeWarning, match="Precision loss occurred..."):
             res = stats.zmap(scores, compare)
         xp_assert_equal(res, ref)
 
@@ -3062,31 +3059,20 @@ class TestZscore:
 
     def test_zscore_constant_input_1d(self, xp):
         x = xp.asarray([-0.087] * 3)
-        warn_ctx = (
-            contextlib.nullcontext() if is_lazy_array(x)
-            else pytest.warns(RuntimeWarning, match="Precision loss occurred..."))
-
-        with warn_ctx:
+        with eager_warns(x, RuntimeWarning, match="Precision loss occurred..."):
             z = stats.zscore(x)
         xp_assert_equal(z, xp.full(x.shape, xp.nan))
 
-    @pytest.mark.filterwarnings(
-        "ignore:The `numpy.copyto` function is not implemented:FutureWarning:dask"
-    )
     @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning:dask")
     def test_zscore_constant_input_2d(self, xp):
         x = xp.asarray([[10.0, 10.0, 10.0, 10.0],
                         [10.0, 11.0, 12.0, 13.0]])
-        warn_ctx = (
-            contextlib.nullcontext() if is_lazy_array(x)
-            else pytest.warns(RuntimeWarning, match="Precision loss occurred..."))
-
-        with warn_ctx:        
+        with eager_warns(x, RuntimeWarning, match="Precision loss occurred..."):
             z0 = stats.zscore(x, axis=0)
         xp_assert_close(z0, xp.asarray([[xp.nan, -1.0, -1.0, -1.0],
                                         [xp.nan, 1.0, 1.0, 1.0]]))
 
-        with warn_ctx:
+        with eager_warns(x, RuntimeWarning, match="Precision loss occurred..."):
             z1 = stats.zscore(x, axis=1)
         xp_assert_equal(z1, xp.stack([xp.asarray([xp.nan, xp.nan, xp.nan, xp.nan]),
                                       stats.zscore(x[1, :])]))
@@ -3095,9 +3081,9 @@ class TestZscore:
         xp_assert_equal(z, xp.reshape(stats.zscore(xp.reshape(x, (-1,))), x.shape))
 
         y = xp.ones((3, 6))
-        with warn_ctx:
+        with eager_warns(y, RuntimeWarning, match="Precision loss occurred..."):
             z = stats.zscore(y, axis=None)
-        xp_assert_equal(z, xp.full(y.shape, xp.asarray(xp.nan)))
+        xp_assert_equal(z, xp.full(y.shape, xp.nan))
 
     @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning:dask")
     def test_zscore_constant_input_2d_nan_policy_omit(self, xp):
@@ -3106,17 +3092,14 @@ class TestZscore:
                         [10.0, 12.0, xp.nan, 10.0]])
         s = (3/2)**0.5
         s2 = 2**0.5
-        warn_ctx = (
-            contextlib.nullcontext() if is_lazy_array(x)
-            else pytest.warns(RuntimeWarning, match="Precision loss occurred..."))
 
-        with warn_ctx:
+        with eager_warns(x, RuntimeWarning, match="Precision loss occurred..."):
             z0 = stats.zscore(x, nan_policy='omit', axis=0)
         xp_assert_close(z0, xp.asarray([[xp.nan, -s, -1.0, xp.nan],
                                         [xp.nan, 0, 1.0, xp.nan],
                                         [xp.nan, s, xp.nan, xp.nan]]))
 
-        with warn_ctx:
+        with eager_warns(x, RuntimeWarning, match="Precision loss occurred..."):
             z1 = stats.zscore(x, nan_policy='omit', axis=1)
         xp_assert_close(z1, xp.asarray([[xp.nan, xp.nan, xp.nan, xp.nan],
                                         [-s, 0, s, xp.nan],
@@ -3733,26 +3716,18 @@ class TestSkew(SkewKurtosisTest):
 
     def test_skew_constant_value(self, xp):
         # Skewness of a constant input should be NaN (gh-16061)
-        a = xp.asarray([-0.27829495]*10)  # xp.repeat not currently available
-        warn_ctx = (
-            contextlib.nullcontext() if is_lazy_array(a)
-            else pytest.warns(RuntimeWarning, match="Precision loss occurred..."))
+        a = xp.repeat(xp.asarray([-0.27829495]), 10)
 
-        with warn_ctx:
+        with eager_warns(a, RuntimeWarning, match="Precision loss occurred"):
             xp_assert_equal(stats.skew(a), xp.asarray(xp.nan))
-        with warn_ctx:
             xp_assert_equal(stats.skew(a*2.**50), xp.asarray(xp.nan))
-        with warn_ctx:
             xp_assert_equal(stats.skew(a/2.**50), xp.asarray(xp.nan))
-        with warn_ctx:
             xp_assert_equal(stats.skew(a, bias=False), xp.asarray(xp.nan))
 
-        # # similarly, from gh-11086:
-        a = xp.asarray([14.3]*7)
-        with warn_ctx:
+            # # similarly, from gh-11086:
+            a = xp.asarray([14.3]*7)
             xp_assert_equal(stats.skew(a), xp.asarray(xp.nan))
-        a = 1. + xp.arange(-3., 4)*1e-16
-        with warn_ctx:
+            a = 1. + xp.arange(-3., 4)*1e-16
             xp_assert_equal(stats.skew(a), xp.asarray(xp.nan))
 
     @skip_xp_backends(eager_only=True)
@@ -3854,17 +3829,10 @@ class TestKurtosis(SkewKurtosisTest):
     def test_kurtosis_constant_value(self, xp):
         # Kurtosis of a constant input should be NaN (gh-16061)
         a = xp.asarray([-0.27829495]*10)
-        warn_ctx = (
-            contextlib.nullcontext() if is_lazy_array(a)
-            else pytest.warns(RuntimeWarning, match="Precision loss occurred..."))
-
-        with warn_ctx:
+        with eager_warns(a, RuntimeWarning, match="Precision loss occurred"):
             assert xp.isnan(stats.kurtosis(a, fisher=False))
-        with warn_ctx:
             assert xp.isnan(stats.kurtosis(a * float(2**50), fisher=False))
-        with warn_ctx:
             assert xp.isnan(stats.kurtosis(a / float(2**50), fisher=False))
-        with warn_ctx:
             assert xp.isnan(stats.kurtosis(a, fisher=False, bias=False))
 
     @pytest.mark.parametrize('axis', [-1, 0, 2, None])
@@ -6110,11 +6078,8 @@ class TestTTestInd:
         # test zero division problem
         x = xp.zeros(3)
         y = xp.ones(3)
-        warn_ctx = (
-            contextlib.nullcontext() if is_lazy_array(x)
-            else pytest.warns(RuntimeWarning, match="Precision loss occurred..."))
 
-        with warn_ctx:
+        with eager_warns(x, RuntimeWarning, match="Precision loss occurred"):
             t, p = stats.ttest_ind(x, y, equal_var=False)
 
         xp_assert_equal(t, xp.asarray(-xp.inf))
@@ -6152,10 +6117,6 @@ class TestTTestInd:
         assert_allclose(r2, (-2.5354627641855498, 0.052181400457057901),
                         atol=1e-15)
 
-    # internal dask warning we can't do anything about
-    @pytest.mark.filterwarnings(
-        "ignore:The `numpy.copyto` function is not implemented:FutureWarning:dask"
-    )
     def test_ttest_ind_empty_1d_returns_nan(self, xp):
         # Two empty inputs should return a TtestResult containing nan
         # for both values.
@@ -6169,10 +6130,6 @@ class TestTTestInd:
         xp_assert_equal(res.statistic, NaN)
         xp_assert_equal(res.pvalue, NaN)
 
-    # internal dask warning we can't do anything about
-    @pytest.mark.filterwarnings(
-        "ignore:The `numpy.copyto` function is not implemented:FutureWarning:dask"
-    )
     @pytest.mark.parametrize('b, expected_shape',
                             [(np.empty((1, 5, 0)), (3, 5)),
                             (np.empty((1, 0, 0)), (3, 0))])
@@ -6181,7 +6138,7 @@ class TestTTestInd:
         # The results should be arrays containing nan with shape
         # given by the broadcast nonaxis dimensions.
         a = xp.empty((3, 1, 0))
-        b = xp.asarray(b)
+        b = xp.asarray(b, dtype=a.dtype)
         with np.testing.suppress_warnings() as sup:
             # first case should warn, second shouldn't?
             sup.filter(SmallSampleWarning, too_small_nd_not_omit)
