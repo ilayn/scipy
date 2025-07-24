@@ -103,7 +103,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include "__lbfgsb.h"
-
+#include <float.h>
 
 enum Status {
     START        = 0,
@@ -246,7 +246,7 @@ static void dcstep (
     double stpmin, double stpmax
 );
 
-static double epsmach = 2.220446049250313e-016;  /* np.finfo(np.float64).eps  */
+static double epsmach = DBL_EPSILON;  /* np.finfo(np.float64).eps  */
 
 
 void
@@ -788,6 +788,7 @@ mainlb(int n, int m, double* x, double* l, double* u,
     goto LINE1000;
 
 LINE111:
+    printf("MAINLB: At 111\n");
     nfgv = 1;
 
     // Compute the infinity norm of the (-) projected gradient.
@@ -802,6 +803,7 @@ LINE111:
 
     // ----------------- the beginning of the loop --------------------------
 LINE222:
+printf("MAINLB: At 222\n");
     iword = -1;
 
     if ((!cnstnd) && (col > 0))
@@ -840,6 +842,7 @@ LINE222:
     nact = n - nfree;
 
 LINE333:
+    printf("MAINLB: At 333\n");
     // If there are no free variables or B=theta*I, then skip the subspace
     // minimization.
     if ((nfree == 0) || (col == 0)) { goto LINE555; }
@@ -883,6 +886,7 @@ LINE333:
           head, &iword, wa, wn, &info);
 
 LINE444:
+    printf("MAINLB: At 444\n");
     if (info != 0)
     {
         // singular triangular system detected;
@@ -897,7 +901,7 @@ LINE444:
     }
 
 LINE555:
-
+    printf("MAINLB: At 555\n");
     /////////////////////////////////////////////////////
     //
     // Line search and optimality tests.
@@ -911,10 +915,11 @@ LINE555:
     }
 
 LINE666:
+    printf("MAINLB: At 666\n");
     lnsrlb(n, l, u, nbd, x, *f, &fold, &gd, &gdold, g, d, r, t, z, &stp, &dnorm,
            &dtd, &xstep, &stpmx, iter, &ifun, &iback, &nfgv, &info, task,
            task_msg, boxed, cnstnd, &isave[21], &dsave[16], temp_task, temp_taskmsg);
-
+    printf("MAINLB: At 666 after lnsrlb, stp = %22.16e\n", stp);
     if ((info != 0) || (iback >= maxls))
     {
         dcopy_(&n, t, &one_int, x, &one_int);
@@ -963,7 +968,7 @@ LINE666:
     }
 
 LINE777:
-
+    printf("MAINLB: At 777\n");
     // Test for termination.
     if (sbgnrm <= pgtol)
     {
@@ -1006,6 +1011,7 @@ LINE777:
         // Skip the L-BFGS update.
         nskip += 1;
         updatd = 0;
+        printf("MAINLB: At 777, skipping L-BFGS update, nskip = %d\n", nskip);
         goto LINE888;
     }
 
@@ -1045,13 +1051,16 @@ LINE777:
     // [  D^(1/2)      O ] [ -D^(1/2)  D^(-1/2)*L' ]
     // [ -L*D^(-1/2)   J ] [  0        J'          ]
 LINE888:
+    printf("MAINLB: At 888\n");
     // -------------------- the end of the loop -----------------------------
     goto LINE222;
 
 LINE999:
+    printf("MAINLB: At 999\n");
     ;
 
 LINE1000:
+    printf("MAINLB: At 1000\n");
     // Save local variables
     lsave[0]  = prjctd;
     lsave[1]  = cnstnd;
@@ -1090,6 +1099,7 @@ LINE1000:
     dsave[11] = stpmx;
     dsave[12] = sbgnrm;
     dsave[13] = stp;
+    printf("MAINLB: At 1000, saving dsave[13] = %22.16e\n", stp);
     dsave[14] = gdold;
     dsave[15] = dtd;
 
@@ -2577,10 +2587,10 @@ lnsrlb(int n, double* l, double* u, int* nbd, double* x,
     int i, one_int = 1;
     double a1, a2, ftol = 1e-3, gtol = 0.9, xtol = 0.1;
     if (*task_msg == FG_LNSRCH) { goto LINE556; }
-
+    printf("lnsrlb: NOT JUMPED TO 556\n");
     *dnorm = dnrm2_(&n, d, &one_int);
     *dtd = pow(*dnorm, 2.0);
-
+    printf("lnsrlb: dnorm: %22.16e, dtd: %22.16e\n", *dnorm, *dtd);
     // Determine the maximum step length.
     *stpmx = 1.0e+10;
     if (cnstnd)
@@ -2637,7 +2647,16 @@ lnsrlb(int n, double* l, double* u, int* nbd, double* x,
     *temp_task = START;
     *temp_taskmsg = NO_MSG;
 LINE556:
+    printf("lnsrlb: At 556\n");
     *gd = ddot_(&n, g, &one_int, d, &one_int);
+    printf("lnsrlb: n: %d\n", n);
+    printf("lnsrlb: g=: \n");
+    for (i = 0; i < n; i++) { printf("%22.16e ", g[i]); }
+    printf("\n");
+    printf("lnsrlb: d=: \n");
+    for (i = 0; i < n; i++) { printf("%22.16e ", d[i]); }
+    printf("\n");
+    printf("lnsrlb: gd: %22.16e\n", *gd);
     if (*ifun == 0)
     {
         *gdold = *gd;
@@ -2648,8 +2667,13 @@ LINE556:
             return;
         }
     }
+    printf("lnsrlb: Calling dcsrch with parameters:\n");
+    printf("  f: %22.16e, gd: %22.16e, stp: %22.16e, ftol: %22.16e,\n", f, *gd, *stp, ftol);
+    printf("  gtol: %22.16e, xtol: %22.16e, stmin: %22.16e, stmax: %22.16e\n", gtol, xtol, 0.0, *stpmx);
     dcsrch(f, *gd, stp, ftol, gtol, xtol, 0.0, *stpmx, temp_task, temp_taskmsg,
            isave, dsave);
+    printf("lnsrlb: dcsrch returned with dsave[7] = %22.16e\n", dsave[7]);
+    printf("lnsrlb: dcsrch returned with stp = %22.16e\n", *stp);
 
     *xstep = (*stp) * (*dnorm);
     if ((*temp_task != CONVERGENCE) && (*temp_task != WARNING))
@@ -2729,7 +2753,7 @@ matupd(int n, int m, double* ws, double *wy, double* sy, double* ss,
 
     // Set theta=yy/ys.
     *theta = rr / dr;
-
+    printf("matupd: theta: %22.16e\n", *theta);
     // Form the middle matrix in B.
     // update the upper triangle of SS (m, m), and the lower triangle of SY (m, m):
     if (iupdat > m)
@@ -2748,7 +2772,9 @@ matupd(int n, int m, double* ws, double *wy, double* sy, double* ss,
     for (j = 0; j < *col - 1; j++)
     {
         sy[*col - 1 + m*j] = ddot_(&n, d, &one_int, &wy[pointr*n], &one_int);
+        printf("matupd: sy[%d]: %22.16e\n", *col - 1 + m*j, sy[*col - 1 + m*j]);
         ss[j + m*(*col - 1)] = ddot_(&n, &ws[pointr*n], &one_int, &d[0], &one_int);
+        printf("matupd: ss[%d]: %22.16e\n", j + m*(*col - 1), ss[j + m*(*col - 1)]);
         pointr = (pointr + 1) % m;
     }
     // 51
@@ -3335,7 +3361,7 @@ dcsrch(double f, double g, double* stp, double ftol, double gtol,
         ginit = g;
         gtest = ftol * ginit;
         width = stpmax - stpmin;
-        width1 = width / 0.5;
+        width1 = width * 2.0;
 
         // The variables stx, fx, gx contain the values of the step, function,
         // and derivative at the best step.
@@ -3377,7 +3403,12 @@ dcsrch(double f, double g, double* stp, double ftol, double gtol,
         stmax  = dsave[10];
         width  = dsave[11];
         width1 = dsave[12];
-
+        // Print dsave for debugging
+//        printf("DCSRCH: BEFORE %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e \n",
+//                dsave[0], dsave[1], dsave[2], dsave[3], dsave[4],
+//                dsave[5], dsave[6], dsave[7], dsave[8], dsave[9],
+//                dsave[10], dsave[11], dsave[12]
+//        );
     }
 
     // If psi(stp) <= 0 and f'(stp) >= 0 for some step, then the algorithm
@@ -3412,13 +3443,14 @@ dcsrch(double f, double g, double* stp, double ftol, double gtol,
     // Test for termination.
     if ((*task == WARNING) || (*task == CONVERGENCE))
     {
+        printf("DCSRCH:  Task = %d, Message = %d\n", *task, *task_msg);
         goto SAVEVARS;
     }
 
     // A modified function is used to predict the step during the first stage if
     // a lower function value has been obtained but the decrease is not sufficient.
-
-    if ((stage == 1) && (f <= fx) && (f > ftest))
+    printf("DCSRCH:  stage = %d, f = %22.16e, fx = %22.16e, ftest = %22.16e\n", stage, f, fx, ftest);
+    if ((stage == 1) && (fabs(f)*epsmach <= fx - f) && (f - ftest > fabs(f)*epsmach))
     {
         // Define the modified function and derivative values.
         fm = f - (*stp)*gtest;
@@ -3427,10 +3459,11 @@ dcsrch(double f, double g, double* stp, double ftol, double gtol,
         gm = g - gtest;
         gxm = gx - gtest;
         gym = gy - gtest;
+        printf("DCSRCH:   IF CALLING DCSTEP %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %d %22.16e %22.16e \n", stx, fxm, gxm, sty, fym, gym, *stp, fm, gm, brackt, stmin, stmax);
 
         // Call dcstep to update stx, sty, and to compute the new step.
         dcstep(&stx, &fxm, &gxm, &sty, &fym, &gym, stp, fm, gm, &brackt, stmin, stmax);
-
+        printf("DCSRCH:   IF AFTER DCSTEP stp = %22.16e\n", *stp);
         // Reset the function and derivative values for f.
         fx = fxm + stx*gtest;
         fy = fym + sty*gtest;
@@ -3439,7 +3472,9 @@ dcsrch(double f, double g, double* stp, double ftol, double gtol,
 
     } else {
         // Call dcstep to update stx, sty, and to compute the new step.
+        printf("DCSRCH: ELSE CALLING DCSTEP %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %d %22.16e %22.16e \n", stx, fx, gx, sty, fy, gy, *stp, f, g, brackt, stmin, stmax);
         dcstep(&stx, &fx, &gx, &sty, &fy, &gy, stp, f, g, &brackt, stmin, stmax);
+        printf("DCSRCH: ELSE AFTER DCSTEP stp = %22.16e\n", *stp);
     }
 
     // Decide if a bisection step is needed.
@@ -3448,6 +3483,7 @@ dcsrch(double f, double g, double* stp, double ftol, double gtol,
             if (fabs(sty - stx) >= 0.66*width1)
             {
                 *stp = stx + 0.5*(sty - stx);
+                printf("DCSRCH: In bisection condition stp = %22.16e\n", *stp);
             }
         width1 = width;
         width = fabs(sty - stx);
@@ -3464,8 +3500,10 @@ dcsrch(double f, double g, double* stp, double ftol, double gtol,
     }
 
     // Force the step to be within the bounds stpmax and stpmin.
+    // printf("DCSRCH: Before minmax stp = %22.16e\n", *stp);
     *stp = fmax(*stp, stpmin);
     *stp = fmin(*stp, stpmax);
+    // printf("DCSRCH: After minmax stp = %22.16e\n", *stp);
 
     // If further progress is not possible, let stp be the best point obtained
     // during the search.
@@ -3503,6 +3541,13 @@ SAVEVARS:
     dsave[11] = width;
     dsave[12] = width1;
 
+//    printf("DCSRCH: ------------------------------------------\n");
+//    printf("DCSRCH:  AFTER %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e %22.16e \n",
+//            dsave[0], dsave[1], dsave[2], dsave[3], dsave[4],
+//            dsave[5], dsave[6], dsave[7], dsave[8], dsave[9],
+//            dsave[10], dsave[11], dsave[12]
+//    );
+//    printf("DCSRCH: =========================================\n");
     return;
 }
 
@@ -3605,7 +3650,7 @@ dcstep (double* stx, double* fx, double* dx, double* sty, double* fy, double* dy
     //
     //     **********
     double gamma, p, q, r, s, sgnd, stpc, stpf, stpq, theta;
-    sgnd = dp * (*dx / fabs(*dx));
+    sgnd = dp * copysign(1.0, *dx);
 
     // First case: A higher function value. The minimum is bracketed.
     // If the cubic step is closer to stx than the quadratic step, the
@@ -3619,9 +3664,11 @@ dcstep (double* stx, double* fx, double* dx, double* sty, double* fy, double* dy
         gamma = s * sqrt(pow(theta / s, 2.0) - (*dx / s)*(dp / s));
         if (*stp < *stx) { gamma = -gamma; }
         p = (gamma - *dx) + theta;
+//        printf("DCSTEP: In first case gamma = %22.16e, dx = %22.16e, theta = %22.16e\n", gamma, *dx, theta);
         q = ((gamma - *dx) + gamma) + dp;
         r = p / q;
         stpc = *stx + r * (*stp - *stx);
+//        printf("DCSTEP: In first case stx = %22.16e, stp = %22.16e, gamma = %22.16e, p = %22.16e, q = %22.16e, r = %22.16e\n", *stx, *stp, gamma, p, q, r);
         stpq = *stx + ((*dx / ((*fx - fp) / (*stp - *stx) + *dx)) / 2.0) * (*stp - *stx);
         if (fabs(stpc - *stx) < fabs(stpq - *stx))
         {
@@ -3630,7 +3677,7 @@ dcstep (double* stx, double* fx, double* dx, double* sty, double* fy, double* dy
             stpf = stpc + (stpq - stpc) / 2.0;
         }
         *brackt = 1;
-
+//        printf("DCSTEP: In first case stpf = %22.16e\n", stpf);
     } else if (sgnd < 0.0) {
 
         // Second case: A lower function value and derivatives of opposite
@@ -3654,7 +3701,7 @@ dcstep (double* stx, double* fx, double* dx, double* sty, double* fy, double* dy
             stpf = stpq;
         }
         *brackt = 1;
-
+//        printf("DCSTEP: In second case stpf = %22.16e\n", stpf);
     } else if (fabs(dp) < fabs(*dx)) {
 
         // Third case: A lower function value, derivatives of the same sign,
@@ -3718,7 +3765,7 @@ dcstep (double* stx, double* fx, double* dx, double* sty, double* fy, double* dy
             stpf = fmin(stpmax, stpf);
             stpf = fmax(stpmin, stpf);
         }
-
+//        printf("DCSTEP: In third case stpf = %22.16e\n", stpf);
     } else {
         // Fourth case: A lower function value, derivatives of the same sign,
         // and the magnitude of the derivative does not decrease. If the
@@ -3735,6 +3782,7 @@ dcstep (double* stx, double* fx, double* dx, double* sty, double* fy, double* dy
             r = p / q;
             stpc = *stp + r*(*sty - *stp);
             stpf = stpc;
+//            printf("DCSTEP: In fourth case stpf = %22.16e\n", stpf);
         } else if (*stp > *stx) {
             stpf = stpmax;
         } else {
@@ -3754,14 +3802,16 @@ dcstep (double* stx, double* fx, double* dx, double* sty, double* fy, double* dy
             *fy = *fx;
             *dy = *dx;
         }
-         *stx = *stp;
-         *fx = fp;
-         *dx = dp;
+//        printf("DCSTEP: Updating stx to %22.16e\n", *stp);
+        *stx = *stp;
+        *fx = fp;
+        *dx = dp;
     }
 
     // Compute the new step.
-
+    // printf("DCSTEP: Before stp = %22.16e\n", *stp);
     *stp = stpf;
+    // printf("DCSTEP:  After stp = %22.16e\n", *stp);
 
     return;
 }
