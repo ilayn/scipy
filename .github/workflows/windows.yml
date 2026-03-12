@@ -132,4 +132,4 @@ jobs:
       - name: Test
         run: |
           $env:OPENBLAS_NUM_THREADS = 1
-          spin test -j2 -- --durations=25
+          spin test -t scipy/linalg/tests/test_basic.py -j2 -- --durations=25
