@@ -4,6 +4,7 @@
 #include "Python.h"
 #include <iostream>
 #include <cstdio>
+#include <cstring>
 #include "numpy/arrayobject.h"
 #include "numpy/npy_math.h"
 #include "npy_cblas.h"
@@ -389,15 +390,22 @@ _solve_assume_banded(PyArrayObject *ap_Am, PyArrayObject *ap_b, T *ret_data, cha
      * - `b_data` is a buffer for the rhs of the system, not needed if `overwrite_b` is set (size = 0 then)
      */
     npy_intp b_data_size = overwrite_b ? 0 : n * nrhs;
-    buffer = (T *)malloc((ldab_max * n + 3 * n + b_data_size) * sizeof(T));
+    npy_intp total_elems = ldab_max * n + 3 * n + b_data_size;
+    // Canary guard: allocate 16 extra bytes before and after, fill with 0xAA
+    npy_intp guard_elems = 16; // in units of T
+    unsigned char *raw_buffer = (unsigned char *)malloc((total_elems + 2 * guard_elems) * sizeof(T));
 
-    if (buffer == NULL) {
+    if (raw_buffer == NULL) {
         free(ipiv);
         free(irwork);
         free(ks);
         info = -102;
         return int(info);
     }
+
+    memset(raw_buffer, 0xAA, guard_elems * sizeof(T));
+    memset(raw_buffer + (guard_elems + total_elems) * sizeof(T), 0xBB, guard_elems * sizeof(T));
+    buffer = (T *)(raw_buffer + guard_elems * sizeof(T));
 
     // Chop up buffer
     T *ab = &buffer[0];
@@ -462,10 +470,24 @@ _solve_assume_banded(PyArrayObject *ap_Am, PyArrayObject *ap_b, T *ret_data, cha
     }
 
 free_exit_banded:
+    // Check canary guards for buffer overflow/underflow
+    {
+        bool pre_ok = true, post_ok = true;
+        for (npy_intp _i = 0; _i < (npy_intp)(guard_elems * sizeof(T)); _i++) {
+            if (raw_buffer[_i] != 0xAA) { pre_ok = false; break; }
+        }
+        unsigned char *post_guard = raw_buffer + (guard_elems + total_elems) * sizeof(T);
+        for (npy_intp _i = 0; _i < (npy_intp)(guard_elems * sizeof(T)); _i++) {
+            if (post_guard[_i] != 0xBB) { post_ok = false; break; }
+        }
+        fprintf(stderr, "[banded_solve] canary check: pre=%s post=%s\n",
+                pre_ok ? "OK" : "CORRUPTED", post_ok ? "OK" : "CORRUPTED");
+    }
+
     free(ipiv);
     free(irwork);
     free(ks);
-    free(buffer);
+    free(raw_buffer);
 
     return 1;
 }

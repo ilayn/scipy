@@ -984,20 +984,19 @@ class TestSolve:
             return
 
         import sys
-        print(f"DIAG: before scipy solve, dtype={dtype}, assume_a={assume_a}", flush=True)
-        sys.stdout.flush()
-        sys.stderr.flush()
+
+        # Call np.linalg.solve BEFORE scipy to test with clean heap
+        print(f"DIAG: calling np.linalg.solve BEFORE scipy, dtype={dtype}, assume_a={assume_a}", flush=True)
+        sys.stdout.flush(); sys.stderr.flush()
+        ref = np.linalg.solve(A_copy.T if transposed else A_copy, b_copy)
+        print("DIAG: np.linalg.solve (before scipy) done", flush=True)
+        sys.stdout.flush(); sys.stderr.flush()
 
         res = solve(A, b, overwrite_a=overwrite, overwrite_b=overwrite,
                     transposed=transposed, assume_a=assume_a)
+        print("DIAG: scipy solve done", flush=True)
+        sys.stdout.flush(); sys.stderr.flush()
 
-        print("DIAG: scipy solve done, calling np.linalg.solve", flush=True)
-        sys.stdout.flush()
-        sys.stderr.flush()
-
-        ref = np.linalg.solve(A_copy.T if transposed else A_copy, b_copy)
-
-        print("DIAG: np.linalg.solve done", flush=True)
         assert_allclose(res, ref)
 
         # Check that `solve` correctly identifies the structure and returns
