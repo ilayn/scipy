@@ -983,11 +983,12 @@ class TestSolve:
                       transposed=transposed)
             return
 
+        # Sanity check: call np.linalg.solve BEFORE scipy to verify it
+        # works on uncorrupted data (heap corruption diagnostic)
+        ref = np.linalg.solve(A_copy.T if transposed else A_copy, b_copy)
+
         res = solve(A, b, overwrite_a=overwrite, overwrite_b=overwrite,
                     transposed=transposed, assume_a=assume_a)
-
-        # Check that solution this solution is *correct*
-        ref = np.linalg.solve(A_copy.T if transposed else A_copy, b_copy)
         assert_allclose(res, ref)
 
         # Check that `solve` correctly identifies the structure and returns

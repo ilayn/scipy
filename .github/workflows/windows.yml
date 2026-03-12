@@ -127,7 +127,7 @@ jobs:
           $env:cc = "clang-cl"
           $env:cxx = "clang-cl"
           $env:fc = "flang-new"
-          spin build --with-scipy-openblas --setup-args="-Duse-pythran=false"
+          spin build --with-scipy-openblas --setup-args="-Duse-pythran=false" --setup-args="-Db_sanitize=address"
 
       - name: Test
         run: |
