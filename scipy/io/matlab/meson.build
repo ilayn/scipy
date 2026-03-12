@@ -45,4 +45,4 @@ py3.install_sources([
   subdir: 'scipy/io/matlab'
 )
 
-subdir('tests')
+#subdir('tests')

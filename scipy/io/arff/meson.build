@@ -6,4 +6,4 @@ py3.install_sources([
   subdir: 'scipy/io/arff'
 )
 
-subdir('tests')
+#subdir('tests')

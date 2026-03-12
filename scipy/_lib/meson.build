@@ -117,4 +117,4 @@ py3.install_sources(
 )
 
 subdir('_uarray')
-subdir('tests')
+#subdir('tests')

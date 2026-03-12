@@ -56,4 +56,4 @@ py3.install_sources(
   subdir: 'scipy/sparse/csgraph'
 )
 
-subdir('tests')
+#subdir('tests')

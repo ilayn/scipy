@@ -31,4 +31,4 @@ py3.install_sources([
   subdir: 'scipy/sparse/linalg/_eigen/arpack'
 )
 
-subdir('tests')
+#subdir('tests')

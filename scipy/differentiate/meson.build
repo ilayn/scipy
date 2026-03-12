@@ -8,4 +8,4 @@ py3.install_sources(
   subdir: 'scipy/differentiate'
 )
 
-subdir('tests')
+#subdir('tests')

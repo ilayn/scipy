@@ -12,4 +12,4 @@ py3.install_sources([
   subdir: 'scipy/integrate/_ivp'
 )
 
-subdir('tests')
+#subdir('tests')

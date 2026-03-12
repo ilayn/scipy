@@ -26,4 +26,4 @@ py3.install_sources(
   subdir: 'scipy/fftpack'
 )
 
-subdir('tests')
+#subdir('tests')

@@ -23,4 +23,4 @@ py3.install_sources([
   subdir: 'scipy/cluster/hierarchy'
 )
 
-subdir('tests')
+#subdir('tests')

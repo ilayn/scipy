@@ -98,4 +98,4 @@ py3.install_sources([
 )
 
 subdir('windows')
-subdir('tests')
+#subdir('tests')

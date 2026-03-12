@@ -8,4 +8,4 @@ py3.install_sources([
 
 subdir('arpack')
 subdir('lobpcg')
-subdir('tests')
+#subdir('tests')

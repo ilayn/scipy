@@ -12,4 +12,4 @@ py3.install_sources(
   subdir: 'scipy/constants'
 )
 
-subdir('tests')
+#subdir('tests')

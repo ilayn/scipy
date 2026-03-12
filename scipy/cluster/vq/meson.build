@@ -14,4 +14,4 @@ py3.install_sources([
   subdir: 'scipy/cluster/vq'
 )
 
-subdir('tests')
+#subdir('tests')

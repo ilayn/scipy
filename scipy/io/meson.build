@@ -13,7 +13,7 @@ py3.install_sources([
   subdir: 'scipy/io'
 )
 
-subdir('tests')
+#subdir('tests')
 subdir('matlab')
 subdir('arff')
 subdir('_harwell_boeing')

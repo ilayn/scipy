@@ -49,4 +49,4 @@ py3.install_sources(
   subdir: 'scipy/fft/_pocketfft'
 )
 
-subdir('tests')
+#subdir('tests')

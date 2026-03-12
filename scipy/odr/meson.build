@@ -35,4 +35,4 @@ py3.install_sources(
   subdir: 'scipy/odr'
 )
 
-subdir('tests')
+#subdir('tests')

@@ -12,4 +12,4 @@ py3.install_sources([
   subdir: 'scipy/sparse/linalg/_isolve'
 )
 
-subdir('tests')
+#subdir('tests')

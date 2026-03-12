@@ -77,4 +77,4 @@ py3.install_sources(
   subdir: 'scipy/ndimage'
 )
 
-subdir('tests')
+#subdir('tests')

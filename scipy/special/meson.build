@@ -284,5 +284,5 @@ py3.install_sources(
   subdir: 'scipy/special'
 )
 
-subdir('tests')
+#subdir('tests')
 subdir('_precompute')

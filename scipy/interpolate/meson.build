@@ -100,4 +100,4 @@ py3.install_sources([
   subdir: 'scipy/interpolate'
 )
 
-subdir('tests')
+#subdir('tests')

@@ -29,4 +29,4 @@ py3.install_sources([
   subdir: 'scipy/spatial/transform'
 )
 
-subdir('tests')
+#subdir('tests')

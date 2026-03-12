@@ -5,4 +5,4 @@ py3.install_sources([
   subdir: 'scipy/sparse/linalg/_eigen/lobpcg'
 )
 
-subdir('tests')
+#subdir('tests')

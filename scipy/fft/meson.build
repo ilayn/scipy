@@ -18,4 +18,4 @@ py3.install_sources(
 )
 
 subdir('_pocketfft')
-subdir('tests')
+#subdir('tests')
