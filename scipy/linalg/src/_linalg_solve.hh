@@ -3,6 +3,7 @@
  */
 #include "Python.h"
 #include <iostream>
+#include <cstdio>
 #include "numpy/arrayobject.h"
 #include "numpy/npy_math.h"
 #include "npy_cblas.h"
@@ -214,20 +215,31 @@ inline void solve_slice_banded(
     CBLAS_INT info;
     char norm = '1';
     real_type rcond;
-    real_type anorm = norm1_banded(ab, kl, ku, work2, N);
 
+    fprintf(stderr, "[solve_slice] norm1_banded: ab=%p kl=%d ku=%d N=%d\n", (void*)ab, kl, ku, N);
+    real_type anorm = norm1_banded(ab, kl, ku, work2, N);
+    fprintf(stderr, "[solve_slice] norm1_banded done, anorm=%g\n", (double)anorm);
+
+    fprintf(stderr, "[solve_slice] call_gbtrf: N=%d kl=%d ku=%d ldab=%d ab=%p ipiv=%p\n",
+            N, kl, ku, ldab, (void*)ab, (void*)ipiv);
     call_gbtrf(&N, &N, &kl, &ku, ab, &ldab, ipiv, &info);
+    fprintf(stderr, "[solve_slice] call_gbtrf done, info=%d\n", info);
     status.lapack_info = (Py_ssize_t)info;
     if (info == 0) {
         // gbtrf success, check condition number
+        fprintf(stderr, "[solve_slice] call_gbcon: N=%d kl=%d ku=%d ldab=%d\n", N, kl, ku, ldab);
         call_gbcon(&norm, &N, &kl, &ku, ab, &ldab, ipiv, &anorm, &rcond, work2, irwork, &info);
+        fprintf(stderr, "[solve_slice] call_gbcon done, info=%d rcond=%g\n", info, (double)rcond);
 
         status.rcond = (double)rcond;
         if (info >= 0) {
             status.is_ill_conditioned = (rcond != rcond) || (rcond < numeric_limits<real_type>::eps);
 
             // finally, solve
+            fprintf(stderr, "[solve_slice] call_gbtrs: trans=%c N=%d kl=%d ku=%d NRHS=%d ldab=%d b_data=%p ldb=%d\n",
+                    trans, N, kl, ku, NRHS, ldab, (void*)b_data, N);
             call_gbtrs(&trans, &N, &kl, &ku, &NRHS, ab, &ldab, ipiv, b_data, &N, &info);
+            fprintf(stderr, "[solve_slice] call_gbtrs done, info=%d\n", info);
             status.is_singular = (info > 0);
         }
     }
@@ -349,6 +361,21 @@ _solve_assume_banded(PyArrayObject *ap_Am, PyArrayObject *ap_b, T *ret_data, cha
     npy_intp *kus = &ks[outer_size]; // Upper bandwidths
     detect_bandwidths(Am_data, ndim, outer_size, shape, strides, kls, kus, &ldab_max);
 
+    fprintf(stderr, "[banded_solve] sizeof(T)=%zd is_complex=%d n=%lld nrhs=%lld ndim=%d outer_size=%lld\n",
+            sizeof(T), (int)type_traits<T>::is_complex, (long long)n, (long long)nrhs, ndim, (long long)outer_size);
+    fprintf(stderr, "[banded_solve] ldab_max=%lld overwrite_a=%d overwrite_b=%d trans=%c\n",
+            (long long)ldab_max, overwrite_a, overwrite_b, trans);
+    for (int _i = 0; _i < ndim; _i++) {
+        fprintf(stderr, "[banded_solve] A strides[%d]=%lld shape[%d]=%lld\n", _i, (long long)strides[_i], _i, (long long)shape[_i]);
+    }
+    for (int _i = 0; _i < ndim; _i++) {
+        fprintf(stderr, "[banded_solve] b strides_b[%d]=%lld shape_b[%d]=%lld\n", _i, (long long)strides_b[_i], _i, (long long)shape_b[_i]);
+    }
+    for (npy_intp _i = 0; _i < outer_size; _i++) {
+        fprintf(stderr, "[banded_solve] slice %lld: kl=%lld ku=%lld ldab=%lld\n",
+                (long long)_i, (long long)kls[_i], (long long)kus[_i], (long long)(2*kls[_i]+kus[_i]+1));
+    }
+
     /*
      * Chop up buffer in parts:
      *
@@ -383,31 +410,54 @@ _solve_assume_banded(PyArrayObject *ap_Am, PyArrayObject *ap_b, T *ret_data, cha
         b_data = bm_data;
     }
 
+    fprintf(stderr, "[banded_solve] buffer alloc: total=%lld elems (%lld bytes), ab=%lld work=%lld b_data=%lld\n",
+            (long long)(ldab_max * n + 3 * n + b_data_size),
+            (long long)((ldab_max * n + 3 * n + b_data_size) * sizeof(T)),
+            (long long)(ldab_max * n), (long long)(3 * n), (long long)b_data_size);
+    fprintf(stderr, "[banded_solve] buffer=%p ab=%p work=%p b_data=%p ret_data=%p\n",
+            (void*)buffer, (void*)ab, (void*)work, (void*)b_data, (void*)ret_data);
+
     // Main loop traversal, taken from `_solve`
     for (npy_intp idx = 0; idx < outer_size; idx++) {
 
         T* slice_ptr = compute_slice_ptr(idx, Am_data, ndim, shape, strides);
+        fprintf(stderr, "[banded_solve] idx=%lld slice_ptr=%p Am_data=%p offset=%lld\n",
+                (long long)idx, (void*)slice_ptr, (void*)Am_data, (long long)(slice_ptr - Am_data));
 
         // Directly take into banded storage
         npy_intp ldab = 2 * kls[idx] + kus[idx] + 1;
+        fprintf(stderr, "[banded_solve] to_banded: n=%lld kl=%lld ku=%lld ldab=%lld s1=%lld s2=%lld s1/sizeof(T)=%lld s2/sizeof(T)=%lld\n",
+                (long long)n, (long long)kls[idx], (long long)kus[idx], (long long)ldab,
+                (long long)strides[ndim-2], (long long)strides[ndim-1],
+                (long long)(strides[ndim-2]/sizeof(T)), (long long)(strides[ndim-1]/sizeof(T)));
         to_banded(slice_ptr, n, kls[idx], kus[idx], ldab, ab, strides[ndim-2], strides[ndim-1]);
+        fprintf(stderr, "[banded_solve] to_banded done\n");
 
         if (!overwrite_b) {
             T* slice_ptr_b = compute_slice_ptr(idx, bm_data, ndim, shape_b, strides_b);
+            fprintf(stderr, "[banded_solve] copy_slice_F: n=%lld nrhs=%lld s_b[-2]=%lld s_b[-1]=%lld\n",
+                    (long long)n, (long long)nrhs,
+                    (long long)strides_b[ndim-2], (long long)strides_b[ndim-1]);
             copy_slice_F(b_data, slice_ptr_b, n, nrhs, strides_b[ndim-2], strides_b[ndim-1]);
+            fprintf(stderr, "[banded_solve] copy_slice_F done\n");
         }
-        // NB. `overwrite_b` is only set when the input is 2D F-ordered, so no copy needed then.
-        // A generalization to ndim > 2 will also require computing the pointer here.
 
         // structure is known to be banded
         init_status(slice_status, idx, St::BANDED);
+        fprintf(stderr, "[banded_solve] calling solve_slice_banded: N=%d NRHS=%d kl=%lld ku=%lld ldab=%lld\n",
+                intn, int_nrhs, (long long)kls[idx], (long long)kus[idx], (long long)ldab);
         solve_slice_banded(trans, intn, int_nrhs, ab, ipiv, b_data, work, irwork, kls[idx], kus[idx], slice_status);
+        fprintf(stderr, "[banded_solve] solve_slice_banded done, lapack_info=%lld\n",
+                (long long)slice_status.lapack_info);
 
         if (_detect_problems(slice_status, vec_status) != 0) { goto free_exit_banded; }
 
         if (!overwrite_b) {
+            fprintf(stderr, "[banded_solve] copy_slice_F_to_C: dst=ret_data+%lld n=%lld nrhs=%lld\n",
+                    (long long)(idx * n * nrhs), (long long)n, (long long)nrhs);
             // Put result in C-order in return buffer
             copy_slice_F_to_C(&ret_data[idx * n * nrhs], b_data, n, nrhs);
+            fprintf(stderr, "[banded_solve] copy_slice_F_to_C done\n");
         } // If `overwrite_b` is true the result is already set.
     }
 

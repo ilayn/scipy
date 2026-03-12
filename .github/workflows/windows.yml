@@ -127,9 +127,9 @@ jobs:
           $env:cc = "clang-cl"
           $env:cxx = "clang-cl"
           $env:fc = "flang-new"
-          spin build --with-scipy-openblas --setup-args="-Duse-pythran=false" --setup-args="-Db_sanitize=address"
+          spin build --with-scipy-openblas --setup-args="-Duse-pythran=false"
 
       - name: Test
         run: |
           $env:OPENBLAS_NUM_THREADS = 1
-          spin test -t scipy/linalg/tests/test_basic.py -j2 -- --durations=25
+          spin test -t scipy/linalg/tests/test_basic.py -- -x -s -k "True-True-False-nrhs0-banded-complex128"
