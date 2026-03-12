@@ -119,7 +119,7 @@ jobs:
 
       - name: pip-packages
         run: |
-          pip install numpy cython pybind11 meson ninja pytest pytest-xdist pytest-timeout pooch spin hypothesis "click<8.3.0"
+          pip install "numpy<2.3" cython pybind11 meson ninja pytest pytest-xdist pytest-timeout pooch spin hypothesis "click<8.3.0"
           python -m pip install -r requirements/openblas.txt
 
       - name: Build
