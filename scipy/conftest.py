@@ -932,7 +932,6 @@ if HAVE_SCPDT:
         "scipy/signal/_max_len_seq_inner.py",
         "scipy/sparse/_generate_sparsetools.py",
         "scipy/special/_generate_pyx.py",
-        "scipy/stats/_stats_pythran.py",
     ]
 
     dt_config.pytest_extra_xfail = {
