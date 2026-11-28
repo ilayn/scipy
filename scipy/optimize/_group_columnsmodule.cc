@@ -72,16 +72,13 @@ OwnedArray new_groups(npy_intp n)
 
 
 /*
- * Greedy grouping of the columns of the dense m-by-n structure at `A`, with byte strides `s0`
- * between rows and `s1` between columns; an entry > 0 is a nonzero. `u` is a workspace of m
- * elements.
+ * Greedy grouping of the columns of the dense, column-major m-by-n structure `A`; an entry > 0
+ * is a nonzero. `u` is a workspace of m elements.
  */
-void group_dense_impl(const char *A, const npy_intp s0, const npy_intp s1, const npy_intp m,
-                      const npy_intp n, npy_intp *groups, unsigned char *u) noexcept
+void group_dense_impl(const int32_t *A, const npy_intp m, const npy_intp n, npy_intp *groups,
+                      unsigned char *u) noexcept
 {
-    auto nonzero = [&](npy_intp k, npy_intp j) -> unsigned char {
-        return *reinterpret_cast<const int32_t *>(A + k * s0 + j * s1) > 0;
-    };
+    auto nonzero = [&](npy_intp k, npy_intp j) -> unsigned char { return A[k + j * m] > 0; };
     npy_intp current_group = 0;
     for (npy_intp i = 0; i < n; i++) {
         if (groups[i] >= 0) { continue; }  // A group was already assigned.
@@ -201,9 +198,8 @@ PyObject *py_group_dense(PyObject *Py_UNUSED(self), PyObject *args)
         PyErr_SetString(PyExc_ValueError, "`m` and `n` must be nonnegative.");
         return NULL;
     }
-    // Any strides, without a copy; `group_columns` passes A[:, order], which is F-contiguous,
-    // so the column scans are contiguous.
-    OwnedArray A = as_array(A_obj, NPY_INT32, 2, NPY_ARRAY_ALIGNED, "A");
+    // `group_columns` passes A[:, order], which is F-contiguous, so this does not copy.
+    OwnedArray A = as_array(A_obj, NPY_INT32, 2, NPY_ARRAY_FARRAY_RO, "A");
     if (!A) { return NULL; }
     if (PyArray_DIM(A.get(), 0) != m || PyArray_DIM(A.get(), 1) != n) {
         PyErr_SetString(PyExc_ValueError, "`A` must have the shape (m, n).");
@@ -216,8 +212,7 @@ PyObject *py_group_dense(PyObject *Py_UNUSED(self), PyObject *args)
     if (u == NULL) { return PyErr_NoMemory(); }
     {
         GILRelease nogil;
-        group_dense_impl(PyArray_BYTES(A.get()), PyArray_STRIDE(A.get(), 0),
-                         PyArray_STRIDE(A.get(), 1), m, n,
+        group_dense_impl(static_cast<const int32_t *>(PyArray_DATA(A.get())), m, n,
                          static_cast<npy_intp *>(PyArray_DATA(groups.get())), u);
     }
     PyMem_RawFree(u);
