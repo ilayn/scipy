@@ -28,6 +28,7 @@ ignore-missing-imports = [
     "scipy.integrate._vode",
     "scipy.interpolate._dierckx",
     "scipy.interpolate._fitpack",
+    "scipy.interpolate._rbfinterp_cpp",
     "scipy.linalg._batched_linalg",
     "scipy.linalg._decomp_update",
     "scipy.linalg._fblas",
@@ -35,6 +36,7 @@ ignore-missing-imports = [
     "scipy.linalg._flapack",
     "scipy.linalg._flapack_64",
     "scipy.linalg._internal_matfuncs",
+    "scipy.optimize._group_columns",
     "scipy.optimize._highspy._core",
     "scipy.optimize._lbfgsb",
     "scipy.optimize._lsap",
@@ -46,6 +48,7 @@ ignore-missing-imports = [
     "scipy.ndimage._nd_image",
     "scipy.ndimage._ni_label",
     "scipy.ndimage._rank_filter_1d",
+    "scipy.signal._max_len_seq_inner",
     "scipy.signal._sigtools",
     "scipy.sparse._sparsetools",
     "scipy.sparse.linalg._dsolve._superlu",
@@ -55,6 +58,7 @@ ignore-missing-imports = [
     "scipy.spatial.cKDTree", # TODO(lucascolley): figure out why this is needed, I can't reproduce locally
     "scipy.special._gufuncs",
     "scipy.special._special_ufuncs",
+    "scipy.stats._ks_2samp_exact",
 ]
 replace-imports-with-any = [
     # missing attributes from modules

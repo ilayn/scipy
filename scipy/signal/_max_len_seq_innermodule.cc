@@ -71,28 +71,28 @@ npy_intp shift_register(const npy_intp *taps, const npy_intp n_taps, int8_t *sta
 }
 
 
-PyDoc_STRVAR(doc_max_len_seq_inner,
-"_max_len_seq_inner(taps, state, nbits, length, seq)\n"
-"\n"
-"Fast inner loop of `max_len_seq`.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"taps : (T,) array_like of int\n"
-"    The taps of the shift register, within [0, nbits].\n"
-"state : (nbits,) ndarray of int8\n"
-"    The initial state; overwritten.\n"
-"nbits : int\n"
-"    Number of bits of the shift register.\n"
-"length : int\n"
-"    Number of bits to generate.\n"
-"seq : (N,) ndarray of int8, N >= length\n"
-"    Receives the generated bits.\n"
-"\n"
-"Returns\n"
-"-------\n"
-"state : (nbits,) ndarray of int8\n"
-"    The final state, rolled so that a further call continues the sequence.\n");
+PyDoc_STRVAR(doc_max_len_seq_inner, R"""(_max_len_seq_inner(taps, state, nbits, length, seq)
+
+Fast inner loop of `max_len_seq`.
+
+Parameters
+----------
+taps : (T,) array_like of int
+    The taps of the shift register, within [0, nbits].
+state : (nbits,) ndarray of int8
+    The initial state; overwritten.
+nbits : int
+    Number of bits of the shift register.
+length : int
+    Number of bits to generate.
+seq : (N,) ndarray of int8, N >= length
+    Receives the generated bits.
+
+Returns
+-------
+state : (nbits,) ndarray of int8
+    The final state, rolled so that a further call continues the sequence.
+)""");
 
 
 PyObject *py_max_len_seq_inner(PyObject *Py_UNUSED(self), PyObject *args)

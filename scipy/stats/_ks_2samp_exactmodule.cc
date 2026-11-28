@@ -76,44 +76,44 @@ bool outer_prob_inside(const int64_t m, const int64_t n, const int64_t mg, const
 }
 
 
-PyDoc_STRVAR(doc_compute_outer_prob_inside_method,
-"_compute_outer_prob_inside_method(m, n, g, h)\n"
-"\n"
-"Count the proportion of paths that do not stay strictly inside two\n"
-"diagonal lines.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"m : int\n"
-"    m > 0\n"
-"n : int\n"
-"    n > 0\n"
-"g : int\n"
-"    g is greatest common divisor of m and n\n"
-"h : int\n"
-"    0 <= h <= lcm(m,n)\n"
-"\n"
-"Returns\n"
-"-------\n"
-"p : float\n"
-"    The proportion of paths that do not stay inside the two lines.\n"
-"\n"
-"The classical algorithm counts the integer lattice paths from (0, 0)\n"
-"to (m, n) which satisfy |x/m - y/n| < h / lcm(m, n).\n"
-"The paths make steps of size +1 in either positive x or positive y\n"
-"directions.\n"
-"We are, however, interested in 1 - proportion to computes p-values,\n"
-"so we change the recursion to compute 1 - p directly while staying\n"
-"within the \"inside method\" a described by Hodges.\n"
-"\n"
-"We generally follow Hodges' treatment of Drion/Gnedenko/Korolyuk.\n"
-"Hodges, J.L. Jr.,\n"
-"\"The Significance Probability of the Smirnov Two-Sample Test,\"\n"
-"Arkiv fiur Matematik, 3, No. 43 (1958), 469-86.\n"
-"\n"
-"For the recursion for 1-p see\n"
-"Viehmann, T.: \"Numerically more stable computation of the p-values\n"
-"for the two-sample Kolmogorov-Smirnov test,\" arXiv: 2102.08037\n");
+PyDoc_STRVAR(doc_compute_outer_prob_inside_method, R"""(_compute_outer_prob_inside_method(m, n, g, h)
+
+Count the proportion of paths that do not stay strictly inside two
+diagonal lines.
+
+Parameters
+----------
+m : int
+    m > 0
+n : int
+    n > 0
+g : int
+    g is greatest common divisor of m and n
+h : int
+    0 <= h <= lcm(m,n)
+
+Returns
+-------
+p : float
+    The proportion of paths that do not stay inside the two lines.
+
+The classical algorithm counts the integer lattice paths from (0, 0)
+to (m, n) which satisfy |x/m - y/n| < h / lcm(m, n).
+The paths make steps of size +1 in either positive x or positive y
+directions.
+We are, however, interested in 1 - proportion to computes p-values,
+so we change the recursion to compute 1 - p directly while staying
+within the "inside method" a described by Hodges.
+
+We generally follow Hodges' treatment of Drion/Gnedenko/Korolyuk.
+Hodges, J.L. Jr.,
+"The Significance Probability of the Smirnov Two-Sample Test,"
+Arkiv fiur Matematik, 3, No. 43 (1958), 469-86.
+
+For the recursion for 1-p see
+Viehmann, T.: "Numerically more stable computation of the p-values
+for the two-sample Kolmogorov-Smirnov test," arXiv: 2102.08037
+)""");
 
 
 PyObject *py_compute_outer_prob_inside_method(PyObject *Py_UNUSED(self), PyObject *args)

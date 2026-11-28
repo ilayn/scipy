@@ -331,21 +331,21 @@ PyObject *set_cpp_error()
 }
 
 
-PyDoc_STRVAR(doc_kernel_matrix,
-"_kernel_matrix(x, kernel)\n"
-"\n"
-"Return the RBFs with centers at `x`, evaluated at `x`.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"x : (P, N) float ndarray\n"
-"    Points.\n"
-"kernel : str or PyCapsule\n"
-"    Name of a built-in RBF, or a capsule with signature \"double (double)\".\n"
-"\n"
-"Returns\n"
-"-------\n"
-"(P, P) float ndarray\n");
+PyDoc_STRVAR(doc_kernel_matrix, R"""(_kernel_matrix(x, kernel)
+
+Return the RBFs with centers at `x`, evaluated at `x`.
+
+Parameters
+----------
+x : (P, N) float ndarray
+    Points.
+kernel : str or PyCapsule
+    Name of a built-in RBF, or a capsule with signature "double (double)".
+
+Returns
+-------
+(P, P) float ndarray
+)""");
 
 
 PyObject *py_kernel_matrix(PyObject *Py_UNUSED(self), PyObject *args)
@@ -375,21 +375,21 @@ PyObject *py_kernel_matrix(PyObject *Py_UNUSED(self), PyObject *args)
 }
 
 
-PyDoc_STRVAR(doc_polynomial_matrix,
-"_polynomial_matrix(x, powers)\n"
-"\n"
-"Return the monomials with exponents from `powers`, evaluated at `x`.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"x : (Q, N) float ndarray\n"
-"    Points.\n"
-"powers : (R, N) int ndarray\n"
-"    The exponents for each monomial.\n"
-"\n"
-"Returns\n"
-"-------\n"
-"(Q, R) float ndarray\n");
+PyDoc_STRVAR(doc_polynomial_matrix, R"""(_polynomial_matrix(x, powers)
+
+Return the monomials with exponents from `powers`, evaluated at `x`.
+
+Parameters
+----------
+x : (Q, N) float ndarray
+    Points.
+powers : (R, N) int ndarray
+    The exponents for each monomial.
+
+Returns
+-------
+(Q, R) float ndarray
+)""");
 
 
 PyObject *py_polynomial_matrix(PyObject *Py_UNUSED(self), PyObject *args)
@@ -425,36 +425,36 @@ PyObject *py_polynomial_matrix(PyObject *Py_UNUSED(self), PyObject *args)
 }
 
 
-PyDoc_STRVAR(doc_build_system,
-"_build_system(y, d, smoothing, kernel, epsilon, powers)\n"
-"\n"
-"Build the system used to solve for the RBF interpolant coefficients.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"y : (P, N) float ndarray\n"
-"    Data point coordinates.\n"
-"d : (P, S) float ndarray\n"
-"    Data values at `y`.\n"
-"smoothing : (P,) float ndarray\n"
-"    Smoothing parameter for each data point.\n"
-"kernel : str or PyCapsule\n"
-"    Name of a built-in RBF, or a capsule with signature \"double (double)\".\n"
-"epsilon : float\n"
-"    Shape parameter.\n"
-"powers : (R, N) int ndarray\n"
-"    The exponents for each monomial in the polynomial.\n"
-"\n"
-"Returns\n"
-"-------\n"
-"lhs : (P + R, P + R) float ndarray, Fortran order\n"
-"    Left-hand side matrix.\n"
-"rhs : (P + R, S) float ndarray, Fortran order\n"
-"    Right-hand side matrix.\n"
-"shift : (N,) float ndarray\n"
-"    Domain shift used to create the polynomial matrix.\n"
-"scale : (N,) float ndarray\n"
-"    Domain scaling used to create the polynomial matrix.\n");
+PyDoc_STRVAR(doc_build_system, R"""(_build_system(y, d, smoothing, kernel, epsilon, powers)
+
+Build the system used to solve for the RBF interpolant coefficients.
+
+Parameters
+----------
+y : (P, N) float ndarray
+    Data point coordinates.
+d : (P, S) float ndarray
+    Data values at `y`.
+smoothing : (P,) float ndarray
+    Smoothing parameter for each data point.
+kernel : str or PyCapsule
+    Name of a built-in RBF, or a capsule with signature "double (double)".
+epsilon : float
+    Shape parameter.
+powers : (R, N) int ndarray
+    The exponents for each monomial in the polynomial.
+
+Returns
+-------
+lhs : (P + R, P + R) float ndarray, Fortran order
+    Left-hand side matrix.
+rhs : (P + R, S) float ndarray, Fortran order
+    Right-hand side matrix.
+shift : (N,) float ndarray
+    Domain shift used to create the polynomial matrix.
+scale : (N,) float ndarray
+    Domain scaling used to create the polynomial matrix.
+)""");
 
 
 PyObject *py_build_system(PyObject *Py_UNUSED(self), PyObject *args)
@@ -547,31 +547,31 @@ PyObject *py_build_system(PyObject *Py_UNUSED(self), PyObject *args)
 }
 
 
-PyDoc_STRVAR(doc_build_evaluation_coefficients,
-"_build_evaluation_coefficients(x, y, kernel, epsilon, powers, shift, scale)\n"
-"\n"
-"Construct the coefficients needed to evaluate the RBF.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"x : (Q, N) float ndarray\n"
-"    Evaluation point coordinates.\n"
-"y : (P, N) float ndarray\n"
-"    Data point coordinates.\n"
-"kernel : str or PyCapsule\n"
-"    Name of a built-in RBF, or a capsule with signature \"double (double)\".\n"
-"epsilon : float\n"
-"    Shape parameter.\n"
-"powers : (R, N) int ndarray\n"
-"    The exponents for each monomial in the polynomial.\n"
-"shift : (N,) float ndarray\n"
-"    Shifts the polynomial domain for numerical stability.\n"
-"scale : (N,) float ndarray\n"
-"    Scales the polynomial domain for numerical stability.\n"
-"\n"
-"Returns\n"
-"-------\n"
-"(Q, P + R) float ndarray\n");
+PyDoc_STRVAR(doc_build_evaluation_coefficients, R"""(_build_evaluation_coefficients(x, y, kernel, epsilon, powers, shift, scale)
+
+Construct the coefficients needed to evaluate the RBF.
+
+Parameters
+----------
+x : (Q, N) float ndarray
+    Evaluation point coordinates.
+y : (P, N) float ndarray
+    Data point coordinates.
+kernel : str or PyCapsule
+    Name of a built-in RBF, or a capsule with signature "double (double)".
+epsilon : float
+    Shape parameter.
+powers : (R, N) int ndarray
+    The exponents for each monomial in the polynomial.
+shift : (N,) float ndarray
+    Shifts the polynomial domain for numerical stability.
+scale : (N,) float ndarray
+    Scales the polynomial domain for numerical stability.
+
+Returns
+-------
+(Q, P + R) float ndarray
+)""");
 
 
 PyObject *py_build_evaluation_coefficients(PyObject *Py_UNUSED(self), PyObject *args)
@@ -639,13 +639,13 @@ PyObject *py_build_evaluation_coefficients(PyObject *Py_UNUSED(self), PyObject *
 }
 
 
-PyDoc_STRVAR(doc_kernel_capsule,
-"_kernel_capsule(name)\n"
-"\n"
-"Return a built-in RBF as a PyCapsule with signature \"double (double)\".\n"
-"\n"
-"The capsule can be wrapped in a `scipy.LowLevelCallable`; it exists to test\n"
-"the code path for user-supplied kernels with compiled code.\n");
+PyDoc_STRVAR(doc_kernel_capsule, R"""(_kernel_capsule(name)
+
+Return a built-in RBF as a PyCapsule with signature "double (double)".
+
+The capsule can be wrapped in a `scipy.LowLevelCallable`; it exists to test
+the code path for user-supplied kernels with compiled code.
+)""");
 
 
 PyObject *py_kernel_capsule(PyObject *Py_UNUSED(self), PyObject *args)

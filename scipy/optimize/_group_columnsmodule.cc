@@ -174,22 +174,22 @@ bool is_int32_array(PyObject *obj)
 }
 
 
-PyDoc_STRVAR(doc_group_dense,
-"group_dense(m, n, A)\n"
-"\n"
-"Group the columns of a dense structure for sparse finite differencing.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"m, n : int\n"
-"    Shape of `A`.\n"
-"A : (m, n) array_like of int32\n"
-"    The structure; an entry > 0 is a nonzero.\n"
-"\n"
-"Returns\n"
-"-------\n"
-"groups : (n,) ndarray of intp\n"
-"    The group of each column, from 0 to the number of groups minus 1.\n");
+PyDoc_STRVAR(doc_group_dense, R"""(group_dense(m, n, A)
+
+Group the columns of a dense structure for sparse finite differencing.
+
+Parameters
+----------
+m, n : int
+    Shape of `A`.
+A : (m, n) array_like of int32
+    The structure; an entry > 0 is a nonzero.
+
+Returns
+-------
+groups : (n,) ndarray of intp
+    The group of each column, from 0 to the number of groups minus 1.
+)""");
 
 
 PyObject *py_group_dense(PyObject *Py_UNUSED(self), PyObject *args)
@@ -225,22 +225,22 @@ PyObject *py_group_dense(PyObject *Py_UNUSED(self), PyObject *args)
 }
 
 
-PyDoc_STRVAR(doc_group_sparse,
-"group_sparse(m, n, indices, indptr)\n"
-"\n"
-"Group the columns of a CSC structure for sparse finite differencing.\n"
-"\n"
-"Parameters\n"
-"----------\n"
-"m, n : int\n"
-"    Shape of the structure.\n"
-"indices, indptr : array_like of int32 or int64\n"
-"    The CSC index arrays; `indptr` has n + 1 entries.\n"
-"\n"
-"Returns\n"
-"-------\n"
-"groups : (n,) ndarray of intp\n"
-"    The group of each column, from 0 to the number of groups minus 1.\n");
+PyDoc_STRVAR(doc_group_sparse, R"""(group_sparse(m, n, indices, indptr)
+
+Group the columns of a CSC structure for sparse finite differencing.
+
+Parameters
+----------
+m, n : int
+    Shape of the structure.
+indices, indptr : array_like of int32 or int64
+    The CSC index arrays; `indptr` has n + 1 entries.
+
+Returns
+-------
+groups : (n,) ndarray of intp
+    The group of each column, from 0 to the number of groups minus 1.
+)""");
 
 
 PyObject *py_group_sparse(PyObject *Py_UNUSED(self), PyObject *args)
