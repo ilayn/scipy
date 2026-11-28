@@ -166,8 +166,8 @@ bool is_valid_csc(const I *indices, const npy_intp nnz, const I *indptr, const n
 bool is_int32_array(PyObject *obj)
 {
     if (!PyArray_Check(obj)) { return false; }
-    PyArrayObject *arr = reinterpret_cast<PyArrayObject *>(obj);
-    return PyArray_ISSIGNED(arr) && PyArray_ITEMSIZE(arr) == 4;
+    // Not `== NPY_INT32`: where long is 32-bit, NPY_INT32 is NPY_LONG and np.intc is NPY_INT.
+    return PyArray_EquivTypenums(PyArray_TYPE(reinterpret_cast<PyArrayObject *>(obj)), NPY_INT32);
 }
 
 
